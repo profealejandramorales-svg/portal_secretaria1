@@ -108,7 +108,7 @@
                         <option value="2026">2026 (Próximo Año - Promoción Automática)</option>
                     </select>
                     <p class="text-xs text-blue-600 mt-1">
-                        * Al seleccionar 2026, los cursos se promueven automáticamente (ej: 1A pasa a 2A, <strong>2B pasa a 3C</strong>) y los 4° Medios se omiten.
+                        * Al seleccionar 2026, los cursos se promueven automáticamente (ej: 1A pasa a 2A) y los 4° Medios se omiten.
                     </p>
                 </div>
                 <h2 class="text-2xl font-bold text-gray-800 mb-4">Selección de Estudiante</h2>
@@ -173,7 +173,7 @@
                 <section class="p-4 border rounded-lg shadow-sm">
                     <h3 class="text-xl font-semibold text-green-700 mb-4">Ingresar Nuevo Alumno</h3>
                     <div class="space-y-3">
-                        <input type="text" id="new-course" placeholder="Curso Actual (Ej: 1A, 2B)" class="w-full p-2 border rounded-lg">
+                        <input type="text" id="new-course" placeholder="Curso Actual (Ej: 1A, 3C)" class="w-full p-2 border rounded-lg">
                         <input type="text" id="new-rut" placeholder="RUT (sin puntos, con guion)" class="w-full p-2 border rounded-lg">
                         <input type="text" id="new-name1" placeholder="Primer Nombre" class="w-full p-2 border rounded-lg">
                         <input type="text" id="new-name2" placeholder="Segundo Nombre (Opcional)" class="w-full p-2 border rounded-lg">
@@ -402,13 +402,9 @@
         /**
          * Calcula el curso promovido para el 2026.
          * Regla: Aumenta el número en 1. Si es 4 o más, retorna null (egresado).
-         * Excepción: 2B pasa a 3C.
+         * Ej: "1A" -> "2A", "3C" -> "4C", "4A" -> null
          */
         function getPromotedCourse(currentCourse) {
-            // --- EXCEPCIÓN ESPECÍFICA ---
-            if (currentCourse === '2B') return '3C';
-            // -----------------------------
-
             const match = currentCourse.match(/^(\d+)(.*)$/);
             if (!match) return currentCourse; // Si no sigue el patrón número+letra, se deja igual.
 
@@ -418,7 +414,17 @@
             if (level >= 4) {
                 return null; // Alumno egresa
             }
-            return (level + 1) + letter;
+
+            // Calculo inicial
+            let promotedCourse = (level + 1) + letter;
+
+            // --- CORRECCIÓN SOLICITADA ---
+            // Si el curso calculado es 3B (que vendría del 2B), lo cambiamos forzosamente a 3C.
+            if (promotedCourse === "3B") {
+                promotedCourse = "3C";
+            }
+
+            return promotedCourse;
         }
 
         /**
@@ -508,10 +514,10 @@
                 return '<p class="text-red-500">Error: Tipo de certificado no válido.</p>';
             }
             
-            // LOGO REAL (Asegúrate de que la imagen exista o usa un placeholder si copiaste esto a otro lado)
+            // LOGO REAL (NO TOCAR RUTA - debe estar en la misma carpeta)
             const logoHTML = `
                 <div class="text-center">
-                    <img src="image_8327d8.png" alt="Logo Escuela" style="height: 80px; max-width: 80px;" class="mx-auto"/>
+                    <img src="logo.jpg" alt="Logo Escuela" style="height: 80px; max-width: 80px;" class="mx-auto"/>
                 </div>
             `;
             
