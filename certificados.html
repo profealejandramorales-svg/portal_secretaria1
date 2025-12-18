@@ -3,135 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Certificados</title>
+    <title>Generador de Certificados Escuela Agrícola</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Estilos generales */
         body {
-            font-family: 'Times New Roman', Times, serif; 
-            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
         }
         
-        /* Contenedor en pantalla */
-        .certificate-container {
-            background: white;
-            padding: 3rem; /* Margen interno en pantalla */
-            border-radius: 5px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            max-width: 21.59cm; /* Ancho carta */
-            margin: 0 auto;
-            min-height: 27.94cm; /* Alto carta */
-            position: relative;
+        /* Estilos específicos para el certificado */
+        .certificate-page {
+            position: relative; 
+            min-height: 800px; 
         }
 
-        /* CONFIGURACIÓN DE IMPRESIÓN (ESTRICTA 1 PLANA) */
+        /* Clase para la marca de agua (dentro del certificado) */
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            color: #d1d5db; /* Gris claro */
+            font-size: 3rem;
+            font-weight: bold;
+            opacity: 0.3;
+            z-index: -1; 
+            pointer-events: none; 
+            white-space: nowrap;
+        }
+
+        /* Estilos para las pestañas de gestión de alumnos */
+        .tab-button.active {
+            background-color: #10b981; /* green-500 */
+            color: white;
+            border-bottom-color: transparent;
+        }
+
+        /* Estilos específicos para la impresión del certificado */
         @media print {
-            @page {
-                size: letter;
-                margin: 1.5cm; /* Margen físico de la hoja */
+            body > * {
+                visibility: hidden;
             }
-            body {
-                background-color: white;
+            #certificate-container {
+                visibility: visible;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
                 margin: 0;
                 padding: 0;
-                -webkit-print-color-adjust: exact;
+                box-shadow: none;
+                background: white;
             }
-            .no-print {
+            #certificate-container .no-print {
                 display: none !important;
             }
-            .certificate-container {
-                width: 100%;
-                max-width: 100%;
-                margin: 0;
-                padding: 0; 
-                box-shadow: none;
-                border: none;
-            }
-            /* Evitar cortes de página dentro de elementos */
-            div, p, img {
-                break-inside: avoid;
+            /* Pie de página con la línea de contacto */
+            @page {
+                size: A4;
+                margin-bottom: 20mm; 
+                @bottom-center {
+                    content: "Loncomilla s/n Villa Alegre – Región del Maule 56 –988653956 56-971362126";
+                    font-style: italic; 
+                    font-size: 9pt;
+                    color: #4b5563; 
+                }
             }
         }
     </style>
 </head>
-<body class="p-6">
+<body class="p-4 sm:p-8">
+    <div id="app" class="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-6 sm:p-10">
+        <header class="text-center mb-10 border-b-2 border-green-700 pb-4">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-green-800">
+                Generador de Certificados Escolares
+            </h1>
+            <p class="text-lg text-gray-600 mt-2">Escuela Agrícola Sagrados Corazones, Villa Alegre</p>
+        </header>
 
-    <header class="max-w-2xl mx-auto text-center mb-6 no-print font-sans">
-        <h1 class="text-3xl font-bold text-blue-900 mb-1">
-            <i class="fa-solid fa-print mr-2"></i>Generador de Certificados
-        </h1>
-        <p class="text-blue-600 text-sm">Escuela Agrícola Sagrados Corazones</p>
-    </header>
-
-    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 font-sans">
-        
-        <div class="lg:col-span-4 no-print space-y-4">
-            
-            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <label class="block text-xs font-bold text-blue-800 uppercase mb-1">Año del Certificado</label>
-                <select id="year-select" class="w-full p-2 border border-blue-300 rounded text-sm font-bold text-blue-900">
-                    <option value="2025" selected>2025 (Año Actual)</option>
-                    <option value="2026">2026 (Promoción Automática)</option>
-                </select>
-            </div>
-
-            <div class="bg-white p-5 rounded-lg shadow border border-gray-200">
-                <h2 class="text-sm font-bold text-gray-700 mb-3 border-b pb-2">Datos del Estudiante</h2>
-
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">Curso</label>
-                        <select id="course-select" class="w-full p-2 border rounded text-sm bg-gray-50">
-                            <option value="">Cargando cursos...</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">Alumno</label>
-                        <select id="student-select" disabled class="w-full p-2 border rounded text-sm bg-gray-100">
-                            <option value="">Seleccione un curso primero</option>
-                        </select>
-                    </div>
-
-                    <div id="action-buttons" class="hidden pt-2 grid grid-cols-1 gap-2">
-                        <button onclick="generateCertificate('regular')" class="w-full py-2 bg-blue-600 text-white rounded text-sm font-bold hover:bg-blue-700">
-                            Generar Alumno Regular
-                        </button>
-                        <button onclick="generateCertificate('matricula')" class="w-full py-2 bg-white text-blue-600 border border-blue-600 rounded text-sm font-bold hover:bg-blue-50">
-                            Generar Matrícula
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="text-center">
-                <a href="portal_secretaria.html" class="text-xs text-gray-500 hover:text-blue-600 font-bold"><i class="fa-solid fa-arrow-left"></i> Volver al Portal</a>
-            </div>
+        <p class="text-xs text-gray-500 text-left -mt-6 mb-4">
+            Desarrollado por ProfeAle
+        </p>
+        <div class="mb-4 border-b border-gray-200">
+            <nav class="flex space-x-2" role="tablist">
+                <button id="tab-generator-button" class="tab-button active px-4 py-2 text-sm font-medium text-gray-600 rounded-t-lg hover:bg-green-100 transition duration-150" data-tab="generator">
+                    Generar Certificado
+                </button>
+                <button id="tab-manage-button" class="tab-button px-4 py-2 text-sm font-medium text-gray-600 rounded-t-lg hover:bg-green-100 transition duration-150" data-tab="manage">
+                    Gestión de Alumnos
+                </button>
+            </nav>
         </div>
 
-        <div class="lg:col-span-8">
-            <div id="preview-container" class="hidden">
-                <div class="bg-gray-800 text-white p-2 rounded-t-lg flex justify-between items-center no-print">
-                    <span class="text-xs font-bold px-2">Vista Previa (Tamaño Carta)</span>
-                    <button onclick="window.print()" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-bold transition">
-                        <i class="fa-solid fa-print mr-1"></i> IMPRIMIR
+        <div id="tab-content-generator">
+            <section class="mb-8 space-y-4">
+                
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
+                    <label for="year-select" class="block text-sm font-bold text-blue-800 mb-2">
+                        📅 Año Académico del Certificado:
+                    </label>
+                    <select id="year-select" class="w-full sm:w-1/3 p-2 border-2 border-blue-300 rounded-lg bg-white text-blue-900 font-semibold focus:border-blue-500 focus:ring focus:ring-blue-200">
+                        <option value="2025" selected>2025 (Año Actual)</option>
+                        <option value="2026">2026 (Próximo Año - Promoción Automática)</option>
+                    </select>
+                    <p class="text-xs text-blue-600 mt-1">
+                        * Al seleccionar 2026, los cursos se promueven automáticamente (ej: 1A pasa a 2A, <strong>2B pasa a 3C</strong>) y los 4° Medios se omiten.
+                    </p>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Selección de Estudiante</h2>
+                
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="sm:w-1/3">
+                        <label for="course-select" class="block text-sm font-medium text-gray-700 mb-1">
+                            Seleccionar Curso:
+                        </label>
+                        <select id="course-select" 
+                                class="w-full p-3 border-2 border-gray-300 rounded-lg bg-white focus:border-green-500 focus:ring focus:ring-green-200 transition duration-150">
+                            <option value="" disabled selected>-- Elija un curso --</option>
+                        </select>
+                    </div>
+
+                    <div class="sm:w-2/3">
+                        <label for="student-select" class="block text-sm font-medium text-gray-700 mb-1">
+                            Seleccionar Alumno:
+                        </label>
+                        <select id="student-select" disabled
+                                class="w-full p-3 border-2 border-gray-300 rounded-lg bg-gray-100 focus:border-green-500 focus:ring focus:ring-green-200 transition duration-150">
+                            <option value="" disabled selected>-- Seleccione un curso primero --</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <p id="loading-message" class="text-center text-green-600 mt-4 hidden">Nómina cargada correctamente.</p>
+            </section>
+
+            <section id="certificate-buttons-section" class="mt-8 hidden">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Generar Certificado para: <span id="selected-student-name" class="text-green-600"></span></h2>
+                <div class="flex space-x-4 justify-start">
+                    <button id="generate-regular-cert" data-type="regular" disabled
+                            class="px-6 py-3 text-sm bg-green-600 text-white font-bold rounded-full hover:bg-green-700 transition duration-150 shadow-md disabled:opacity-50">
+                        Certificado de Alumno Regular
+                    </button>
+                    <button id="generate-matricula-cert" data-type="matricula" disabled
+                            class="px-6 py-3 text-sm bg-yellow-600 text-white font-bold rounded-full hover:bg-yellow-700 transition duration-150 shadow-md disabled:opacity-50">
+                        Certificado de Matrícula
                     </button>
                 </div>
+            </section>
 
+            <div id="certificate-container" class="mt-12 hidden p-6 border-4 border-double border-green-700 rounded-lg bg-white shadow-xl">
                 <div id="certificate-content"></div>
-            </div>
 
-            <div id="initial-placeholder" class="h-96 flex flex-col items-center justify-center bg-white rounded-lg border-2 border-dashed border-gray-300 text-center no-print">
-                <i class="fa-solid fa-file-pdf text-4xl text-gray-300 mb-3"></i>
-                <p class="text-gray-400 text-sm">Selecciona un alumno para<br>generar el documento.</p>
+                <div class="flex justify-center mt-6 no-print">
+                    <button id="print-button" 
+                            class="px-6 py-3 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition duration-200 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5 4v3h10V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm0 6h10v3H5v-3zm0 5h10a2 2 0 002-2v-2a2 2 0 00-2-2H5a2 2 0 00-2 2v2a2 2 0 002 2zM5 7v3h10V7H5z" clip-rule="evenodd" />
+                        </svg>
+                        Imprimir Certificado
+                    </button>
+                </div>
             </div>
         </div>
+        
+        <div id="tab-content-manage" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Gestión de Nómina (Base 2025)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <section class="p-4 border rounded-lg shadow-sm">
+                    <h3 class="text-xl font-semibold text-green-700 mb-4">Ingresar Nuevo Alumno</h3>
+                    <div class="space-y-3">
+                        <input type="text" id="new-course" placeholder="Curso Actual (Ej: 1A, 2B)" class="w-full p-2 border rounded-lg">
+                        <input type="text" id="new-rut" placeholder="RUT (sin puntos, con guion)" class="w-full p-2 border rounded-lg">
+                        <input type="text" id="new-name1" placeholder="Primer Nombre" class="w-full p-2 border rounded-lg">
+                        <input type="text" id="new-name2" placeholder="Segundo Nombre (Opcional)" class="w-full p-2 border rounded-lg">
+                        <input type="text" id="new-apellidop" placeholder="Apellido Paterno" class="w-full p-2 border rounded-lg">
+                        <input type="text" id="new-apellidom" placeholder="Apellido Materno" class="w-full p-2 border rounded-lg">
+                        <button id="add-student-button" class="w-full px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition">
+                            Añadir Alumno
+                        </button>
+                        <p id="add-message" class="text-sm pt-1"></p>
+                    </div>
+                </section>
 
-    </main>
+                <section class="p-4 border rounded-lg shadow-sm">
+                    <h3 class="text-xl font-semibold text-red-700 mb-4">Eliminar Alumno</h3>
+                    <div class="space-y-3">
+                        <select id="delete-course-select" class="w-full p-2 border rounded-lg">
+                            <option value="" disabled selected>-- Elija un curso --</option>
+                        </select>
+                        <select id="delete-student-select" disabled class="w-full p-2 border rounded-lg bg-gray-100">
+                            <option value="" disabled selected>-- Seleccione un alumno --</option>
+                        </select>
+                        <button id="delete-student-button" disabled class="w-full px-4 py-2 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition disabled:opacity-50">
+                            Eliminar Alumno Seleccionado
+                        </button>
+                        <p id="delete-message" class="text-sm pt-1"></p>
+                    </div>
+                </section>
+            </div>
+            
+            <p class="text-xs text-gray-500 mt-6 p-2 bg-yellow-100 border-l-4 border-yellow-500">
+                ⚠️ **Nota Importante:** La gestión de alumnos siempre trabaja sobre la base de datos original (2025). La promoción al 2026 solo se visualiza en la pestaña "Generar Certificado".
+            </p>
+        </div>
+        
+    </div>
 
     <script>
-        // BASE DE DATOS COMPLETA (2025)
-        const RAW_DATA = [
+        // --- CONSTANTES DEL ESTABLECIMIENTO ---
+        const SCHOOL_NAME = "Escuela Agrícola Sagrados Corazones"; 
+        const LOCATION = "Villa Alegre";
+        const DIRECTOR_NAME = "MIGUEL DÍAZ JARA";
+        const DECREE = "Decreto Cooperador de la función Educacional del Estado N° 17.576 del 10 de septiembre de 1965";
+        
+        // ==============================================================================
+        // --- NÓMINA COMPLETA INCRUSTADA (Datos de tu CSV de 6 columnas) ---
+        // Formato: [Curso, RUT, Nombre1, Nombre2, ApellidoP, ApellidoM]
+        // ==============================================================================
+        let RAW_STUDENT_DATA = [
             ['1A', '23376817-0', 'EMILYA', 'ANTONIA', 'ALBURQUENQUE', 'DEL GRECO'],
             ['1A', '22922460-3', 'BENJAMÍN', 'NICOLÁS', 'ANABALÓN', 'BELTRÁN'],
             ['1A', '23355953-9', 'HADEEY', 'ALEJANDRA', 'CONTRERAS', 'SALGADO'],
@@ -156,16 +246,16 @@
             ['1A', '23404221-1', 'DAMIÁN', 'ANDRÉS', 'ZABALAGA', 'COFRÉ'],
             ['1A', '23461777-k', 'LUKAS', 'ALFONSO', 'BAEZ', 'DONOSO'],
             ['1A', '23032545-6', 'GONZALO', 'IGNACIO', 'MESA', 'DÍAZ'],
-            ['1B', '23367234-3', 'NOEMÍ', 'DE JESÚS', 'ARAVENA', 'ZÚÑIGA'],
+            ['1B', '23367234-3', 'NOEMÍ', 'DE JESÚS DE LAS ESTRELLAS', 'ARAVENA', 'ZÚÑIGA'],
             ['1B', '22826488-1', 'CRISTÓBAL', 'ANTONIO', 'ASTUDILLO', 'CAMPOS'],
-            ['1B', '23251746-8', 'BRUNO', 'FERNANDO', 'ASTUDILLO', 'VÁSQUEZ'],
+            ['1B', '23251746-8', 'BRUNO', 'FERNANDO LEÓN', 'ASTUDILLO', 'VÁSQUEZ'],
             ['1B', '23545428-9', 'CATALINA', 'ANDREA', 'CUMINAO', 'VIDAL'],
             ['1B', '23224652-9', 'MIGUEL', 'ALBERTO', 'DÍAZ', 'MALUENDA'],
             ['1B', '23337375-3', 'DIDIER', 'EZEQUIEL', 'KILTAN', 'GONZÁLEZ'],
             ['1B', '23355954-7', 'MARCO', 'EMILIO', 'LÓPEZ', 'ACUÑA'],
             ['1B', '23153879-8', 'EYDAN', 'DAMIÁN', 'LÓPEZ', 'NOVOA'],
             ['1B', '20760552-2', 'FABIÁN', 'FELIPE', 'MÉNDEZ', 'SUAZO'],
-            ['1B', '23391772-9', 'MATEO', 'ANTONIO', 'MOYA', 'REYES'],
+            ['1B', '23391772-9', 'MATEO', 'ANTONIO BENJAMÍN', 'MOYA', 'REYES'],
             ['1B', '23432193-5', 'VALENTINA', 'ABIGAIL', 'OSES', 'CAMPOS'],
             ['1B', '23190411-5', 'ANTONELLA', 'FRANCISCA', 'PALMA', 'ORELLANA'],
             ['1B', '23605196-K', 'MONSERRAT', 'ALAMIRA', 'PEREIRA', 'ORELLANA'],
@@ -188,10 +278,10 @@
             ['2A', '23054557-K', 'MAXIMILIANO', 'EDUARDO', 'PEREIRA', 'HORMAZÁBAL'],
             ['2A', '23029359-7', 'JORDÁN', 'AMARO', 'PINTO', 'TOBAR'],
             ['2A', '23086976-6', 'KEVIN', 'ANDRÉS', 'RECABAL', 'YÁÑEZ'],
-            ['2A', '23284002-1', 'MATÍAS', 'EDUARDO', 'RIQUELME', 'CASTILLO'],
+            ['2A', '23284002-1', 'MATÍAS', 'EDUARDO ANTONIO', 'RIQUELME', 'CASTILLO'],
             ['2A', '23141589-0', 'CONSTANZA', 'VICTORIA', 'RIVERA', 'ABARZA'],
             ['2A', '23294557-5', 'TEIVA', 'SCARLETT', 'SANTIS', 'CASSEUS'],
-            ['2A', '22912548-6', 'KATHERINNE', 'ALEXIA', 'SOBARZO', 'YÉVENES'],
+            ['2A', '22912548-6', 'KATHERINNE', 'ALEXIA BELÉN', 'SOBARZO', 'YÉVENES'],
             ['2A', '23209204-1', 'ANTONELLA', 'INES', 'TOLEDO', 'ALBORNOZ'],
             ['2A', '23115030-7', 'ANTONIA', 'EDITH', 'VENEGAS', 'ARRIAGADA'],
             ['2A', '23146366-6', 'JOAN', 'MANUEL', 'VIELMA', 'ZABALAGA'],
@@ -200,21 +290,21 @@
             ['2B', '22927087-7', 'ALEX', 'FABIÁN', 'ARAYA', 'DOMÍNGUEZ'],
             ['2B', '23099931-7', 'ALEX', 'JOHAN', 'BRAVO', 'MENARES'],
             ['2B', '23200990-K', 'BENJAMÍN', 'IGNACIO', 'CARRASCO', 'LEIVA'],
-            ['2B', '23086622-8', 'CONSTANZA', 'PRISILA', 'CARVAJAL', 'URRUTIA'],
-            ['2B', '23194660-8', 'DIEGO', 'BENJAMÍN', 'ENCINA', 'PIZARRO'],
+            ['2B', '23086622-8', 'CONSTANZA', 'PRISILA (DANIEL)', 'CARVAJAL', 'URRUTIA'],
+            ['2B', '23194660-8', 'DIEGO', 'BENJAMÍN ALEXANDER', 'ENCINA', 'PIZARRO'],
             ['2B', '23229539-2', 'ALEJANDRO', 'ANTONIO', 'FAÚNDEZ', 'NORAMBUENA'],
             ['2B', '22827535-2', 'EMILIO', 'SCOTT', 'JARAMILLO', 'VILLAR'],
             ['2B', '23321258-K', 'MARTÍN', 'ALONSO', 'LÓPEZ', 'VILLAR'],
             ['2B', '23285276-3', 'ALEXANDRA', 'JAVIERA', 'MIRANDA', 'MUÑOZ'],
             ['2B', '22459961-7', 'HÉCTOR', 'ANTONIO', 'MUÑOZ', 'TRONCOSO'],
             ['2B', '23097156-0', 'ALONSO', 'IGNACIO', 'OLIVARES', 'VALENZUELA'],
-            ['2B', '22804086-k', 'ANTONELLA', 'DANAE', 'OLIVARES', 'VALENZUELA'],
+            ['2B', '22804086-k', 'ANTONELLA', 'DANAE IGNACIA', 'OLIVARES', 'VALENZUELA'],
             ['2B', '22876195-8', 'MATÍAS', 'LEANDRO', 'ORELLANA', 'GARRIDO'],
             ['2B', '23113000-4', 'MILLARAY', 'ANGÉLICA', 'PUNOY', 'MEDEL'],
             ['2B', '23118361-2', 'CRISTÓBAL', 'PATRICIO', 'QUIÑENAO', 'MUÑOZ'],
             ['2B', '23244598-K', 'DALIA', 'CONSTANZA', 'RIQUELME', 'COLOMA'],
             ['2B', '23304433-4', 'VICENTE', 'MOISÉS', 'SALGADO', 'ROJAS'],
-            ['2B', '22922664-9', 'VICENTE', 'ESTEBAN', 'SANDOVAL', 'CERPA'],
+            ['2B', '22922664-9', 'VICENTE', 'ESTEBAN ', 'SANDOVAL', 'CERPA'],
             ['2B', '23230279-8', 'CHRISTOPHER', '', 'SOTO', 'NARANJO'],
             ['2B', '22907717-1', 'MARTÍN', '', 'VEKARIC', 'VERDEJO'],
             ['3A', '22717035-2', 'MARTINA', 'ALEJANDRA', 'ALCÁNTAR', 'GARCÍA'],
@@ -240,7 +330,7 @@
             ['3A', '23022549-4', 'CRISTÓBAL', 'ANTONIO', 'VEGA', 'VIVANCO'],
             ['3A', '22903476-6', 'DANIELA', 'ELIZABETH', 'VERA', 'NAVARRETE'],
             ['3A', '22792420-9', 'KARINA', 'ANGELINA', 'VILLALOBOS', 'ARAVENA'],
-            ['3A', '22733377-4', 'SAMIR', 'LUCIAN', 'VILLALOBOS', 'VILLALOBOS'],
+            ['3A', '22733377-4', 'SAMIR', 'LUCIAN JESUS', 'VILLALOBOS', 'VILLALOBOS'],
             ['3A', '22644932-9', 'VICENTE', 'ALEJANDRO', 'HERNÁNDEZ', 'SEPÚLVEDA'],
             ['3A', '100793606-7', 'FLORVELIS', 'DE LOS ANGELES', 'TORREALBA', 'MOYA'],
             ['3A', '23038091-0', 'CONSUELO', 'ANTONIA', 'CARO', 'URRUTIA'],
@@ -255,7 +345,7 @@
             ['3C', '22907525-K', 'BENJAMÍN', 'ESTEBAN', 'LARA', 'RIVERA'],
             ['3C', '22801082-0', 'JOSÉ', 'TOMÁS', 'PALACIOS', 'SOTO'],
             ['3C', '22477831-7', 'JOSÉ', 'CRISTÓBAL', 'PEZO', 'SANTANDER'],
-            ['3C', '22796354-9', 'JOSÉ', 'PABLO', 'ROCHA', 'ROJAS'],
+            ['3C', '22796354-9', 'JOSÉ', 'PABLO WILLIAMS', 'ROCHA', 'ROJAS'],
             ['3C', '22876139-7', 'FABIANA', 'ISIDORA', 'ROJAS', 'YÉVENES'],
             ['3C', '22916573-9', 'ANDY', 'ANTONIO', 'SÁNCHEZ', 'PAREJA'],
             ['3C', '22845486-9', 'SIMÓN', 'ESTEBAN', 'SANTANDER', 'LÓPEZ'],
@@ -267,196 +357,469 @@
             ['4A', '22051153-7', 'CATALINA', 'BELEN', 'ANDIA', 'DE LA HOZ'],
             ['4A', '22269531-7', 'ESTEBAN', 'ALEXANDER', 'FUENTES', 'GONZÁLEZ'],
             ['4A', '22554952-4', 'SOFÍA', 'ELENA', 'GARCÍA', 'ROJAS'],
-            ['4A', '22652303-0', 'ANTONELLA', 'CONSTANZA', 'GODOY', 'HERRERA'],
+            ['4A', '22652303-0', 'ANTONELLA', 'CONSTANZA PAZ', 'GODOY', 'HERRERA'],
             ['4A', '22312159-4', 'KEVIN', 'ALEJANDRO', 'GONZÁLEZ', 'CASTRO'],
             ['4A', '22386223-3', 'PÍA', 'IGNACIA', 'MARCHANT', 'MORÁN'],
-            ['4A', '22533366-1', 'MARTÍN', 'ALAN', 'QUINTANA', 'SAN MARTÍN'],
+            ['4A', '22533366-1', 'MARTÍN', 'ALAN VICENTE', 'QUINTANA', 'SAN'],
             ['4A', '22432358-1', 'CRISTOFER', 'BASTIÁN', 'RECABAL', 'YÁÑEZ'],
             ['4A', '22293250-5', 'GABRIEL', 'ANTONIO', 'ROJAS', 'GONZÁLEZ'],
             ['4A', '22451297-K', 'ESPERANZA', 'BELÉN', 'TOLEDO', 'MUÑOZ'],
             ['4A', '22665848-3', 'FRANCISCA', 'ALEJANDRA', 'YÁÑEZ', 'GONZÁLEZ'],
         ];
+        // ==============================================================================
 
-        // CONSTANTES
-        const SCHOOL_NAME = "Escuela Agrícola Sagrados Corazones"; 
-        const LOCATION = "Villa Alegre";
-        const DIRECTOR_NAME = "MIGUEL DÍAZ JARA";
-        const DECREE = "Decreto Cooperador N° 17.576 del 10 de septiembre de 1965";
+        // --- VARIABLES GLOBALES ---
+        let groupedStudentsData = {}; // Datos para el generador (puede estar promocionado)
+        let rawGroupedStudentsData = {}; // Datos para gestión (siempre 2025)
+        let currentStudent = null; 
 
+        // Elementos del Generador
         const yearSelect = document.getElementById('year-select');
         const courseSelect = document.getElementById('course-select');
         const studentSelect = document.getElementById('student-select');
-        const actionButtons = document.getElementById('action-buttons');
+        const buttonsSection = document.getElementById('certificate-buttons-section');
+        const certificateContainer = document.getElementById('certificate-container');
         const certificateContent = document.getElementById('certificate-content');
-        const previewContainer = document.getElementById('preview-container');
-        const initialPlaceholder = document.getElementById('initial-placeholder');
+        const printButton = document.getElementById('print-button');
+        const regularCertButton = document.getElementById('generate-regular-cert');
+        const matriculaCertButton = document.getElementById('generate-matricula-cert');
+        const selectedStudentNameSpan = document.getElementById('selected-student-name');
         
-        let currentStudents = [];
+        // Elementos de Gestión
+        const tabGeneratorContent = document.getElementById('tab-content-generator');
+        const tabManageContent = document.getElementById('tab-content-manage');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const deleteCourseSelect = document.getElementById('delete-course-select');
+        const deleteStudentSelect = document.getElementById('delete-student-select');
+        const deleteStudentButton = document.getElementById('delete-student-button');
+        const addStudentButton = document.getElementById('add-student-button');
+        const addMessage = document.getElementById('add-message');
+        const deleteMessage = document.getElementById('delete-message');
 
-        document.addEventListener('DOMContentLoaded', () => {
-            yearSelect.addEventListener('change', reloadAll);
-            courseSelect.addEventListener('change', loadStudents);
-            studentSelect.addEventListener('change', enableButtons);
-            reloadAll(); 
-        });
 
-        function getPromotedCourse(course) {
-            const match = course.match(/^(\d+)(.*)$/);
-            if (!match) return course; 
+        // --- FUNCIONES DE LÓGICA DE PROMOCIÓN ---
+        
+        /**
+         * Calcula el curso promovido para el 2026.
+         * Regla: Aumenta el número en 1. Si es 4 o más, retorna null (egresado).
+         * Excepción: 2B pasa a 3C.
+         */
+        function getPromotedCourse(currentCourse) {
+            // --- EXCEPCIÓN ESPECÍFICA ---
+            if (currentCourse === '2B') return '3C';
+            // -----------------------------
+
+            const match = currentCourse.match(/^(\d+)(.*)$/);
+            if (!match) return currentCourse; // Si no sigue el patrón número+letra, se deja igual.
+
             const level = parseInt(match[1]);
             const letter = match[2];
-            if (level >= 4) return null; 
+
+            if (level >= 4) {
+                return null; // Alumno egresa
+            }
             return (level + 1) + letter;
         }
 
-        function getProcessedData() {
-            const is2026 = yearSelect.value === "2026";
-            const grouped = {};
+        /**
+         * Procesa la nómina incrustada.
+         * @param {boolean} applyPromotion - Si es true, aplica la lógica de pasar de curso.
+         */
+        function processStudentData(applyPromotion = false) {
+            const groupedData = {};
 
-            RAW_DATA.forEach(row => {
-                let course = row[0];
-                const rut = row[1];
-                const name = `${row[2]} ${row[3] || ''} ${row[4]} ${row[5] || ''}`.trim().toUpperCase();
+            RAW_STUDENT_DATA.forEach(fields => {
+                // [0] Curso, [1] RUT, [2] Nombre1, [3] Nombre2, [4] ApellidoP, [5] ApellidoM
+                if (fields.length < 6) return; 
 
-                if (is2026) {
+                let course = String(fields[0]).trim().toUpperCase();
+                const rut = String(fields[1]).trim().toUpperCase();
+
+                if (!course || !rut) return;
+
+                // Aplicar promoción si se solicita
+                if (applyPromotion) {
                     course = getPromotedCourse(course);
-                    if (!course) return; 
+                    if (!course) return; // Si retorna null (egresado), saltamos este alumno
                 }
 
-                if (!grouped[course]) grouped[course] = [];
-                grouped[course].push({ rut, name, course });
+                // Filtrar valores falsy (como cadenas vacías) antes de Mapear y Unir
+                const names = [fields[2], fields[3]].filter(Boolean).map(s => String(s).trim().toUpperCase());
+                const lastNames = [fields[4], fields[5]].filter(Boolean).map(s => String(s).trim().toUpperCase());
+
+                const fullName = [...names, ...lastNames].join(' ');
+
+                const student = { course, rut, firstName: names.join(' '), lastName: lastNames.join(' '), fullName };
+
+                if (!groupedData[course]) {
+                    groupedData[course] = [];
+                }
+                groupedData[course].push(student);
             });
-
-            return grouped;
-        }
-
-        function reloadAll() {
-            const data = getProcessedData();
-            const courses = Object.keys(data).sort();
             
-            courseSelect.innerHTML = '<option value="">Seleccionar Curso...</option>';
-            courses.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c;
-                opt.textContent = c;
-                courseSelect.appendChild(opt);
+            // Ordenar cursos y estudiantes
+            const sortedGroupedData = {};
+            Object.keys(groupedData).sort().forEach(key => {
+                groupedData[key].sort((a, b) => a.fullName.localeCompare(b.fullName));
+                sortedGroupedData[key] = groupedData[key];
             });
-
-            studentSelect.innerHTML = '<option value="">Seleccione un curso primero</option>';
-            studentSelect.disabled = true;
-            actionButtons.classList.add('hidden');
-            previewContainer.classList.add('hidden');
-            initialPlaceholder.classList.remove('hidden');
-        }
-
-        function loadStudents() {
-            const course = courseSelect.value;
-            const data = getProcessedData();
             
-            if (course && data[course]) {
-                currentStudents = data[course].sort((a,b) => a.name.localeCompare(b.name));
-                studentSelect.innerHTML = '<option value="">Seleccionar Alumno...</option>';
-                currentStudents.forEach((s, index) => {
-                    const opt = document.createElement('option');
-                    opt.value = index; 
-                    opt.textContent = s.name;
-                    studentSelect.appendChild(opt);
-                });
-                studentSelect.disabled = false;
-            } else {
-                studentSelect.innerHTML = '<option value="">Seleccione un curso primero</option>';
-                studentSelect.disabled = true;
-            }
-            actionButtons.classList.add('hidden');
+            return sortedGroupedData;
         }
 
-        function enableButtons() {
-            if (studentSelect.value !== "") {
-                actionButtons.classList.remove('hidden');
-            } else {
-                actionButtons.classList.add('hidden');
-            }
-        }
-
-        function generateCertificate(type) {
-            const index = studentSelect.value;
-            if (index === "") return;
-
-            const student = currentStudents[index];
-            const year = yearSelect.value;
+        /**
+         * Formatea la fecha actual.
+         */
+        function getFormattedDate(location) {
+            const date = new Date();
+            const day = date.getDate();
+            const monthNames = [
+                "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+            ];
+            const month = monthNames[date.getMonth()];
+            const year = date.getFullYear();
             
-            const dateObj = new Date();
-            const day = dateObj.getDate();
-            const months = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-            const month = months[dateObj.getMonth()];
-            const dateStr = `${day} de ${month} de ${dateObj.getFullYear()}`;
+            return `${location}, ${day} de ${month} de ${year}.`;
+        }
 
-            let title, body;
-
+        /**
+         * Genera el HTML para el certificado, incluyendo la marca de agua y el logo real.
+         */
+        function generateCertificateHTML(student, type) {
+            const dateText = getFormattedDate(LOCATION);
+            const selectedYear = yearSelect.value; // Obtener año seleccionado
+            
+            let certificateTitle = '';
+            let certificateBody = '';
+            
             if (type === 'regular') {
-                title = "CERTIFICADO DE ALUMNO REGULAR";
-                body = `es alumno(a) regular y se encuentra matriculado en el curso <strong>${student.course}</strong>, año escolar <strong>${year}</strong>, de este establecimiento educacional.`;
-            } else {
-                title = "CERTIFICADO DE MATRÍCULA";
-                if (year === "2026") {
-                    body = `ha sido aceptado y matriculado en el curso <strong>${student.course}</strong> para el año escolar <strong>${year}</strong> en este establecimiento educacional.`;
+                certificateTitle = 'CERTIFICADO DE ALUMNO REGULAR';
+                certificateBody = `es alumno regular y se encuentra matriculado en ${student.course}, año ${selectedYear}, de este establecimiento educacional.`;
+            } else if (type === 'matricula') {
+                certificateTitle = 'CERTIFICADO DE MATRÍCULA';
+                // Lógica léxica: Si es 2026, decimos "se encuentra matriculado para el año..."
+                if (selectedYear === "2026") {
+                    certificateBody = `ha sido aceptado y matriculado en el curso ${student.course} para el año escolar ${selectedYear} en este establecimiento educacional.`;
                 } else {
-                    body = `se encuentra matriculado en el curso <strong>${student.course}</strong>, año escolar <strong>${year}</strong>, de este establecimiento educacional.`;
+                    certificateBody = `se encuentra matriculado en ${student.course}, año ${selectedYear}, de este establecimiento educacional.`;
                 }
+            } else {
+                return '<p class="text-red-500">Error: Tipo de certificado no válido.</p>';
             }
-
-            // --- HTML OPTIMIZADO PARA 1 PLANA (LOGO FIJADO) ---
-            const html = `
-                <div class="certificate-container">
-                    
-                    <div class="flex justify-between items-start mb-8">
-                        <div class="text-sm font-sans leading-tight text-gray-800 pt-2">
-                            <p class="font-bold uppercase">Escuela Agrícola Sagrados Corazones</p>
-                            <p>Corporación Educacional Veloz Educa</p>
-                            <p>${LOCATION}</p>
-                        </div>
-                        <div>
-                            <img src="logo.jpg" alt="Insignia" class="h-24 w-auto object-contain" onerror="this.style.display='none'">
-                        </div>
-                    </div>
-
-                    <div class="text-center mb-8">
-                        <h2 class="text-2xl font-bold uppercase underline decoration-2 underline-offset-4">${title}</h2>
-                    </div>
-
-                    <div class="text-lg leading-normal text-justify mb-6 px-4 font-serif">
-                        <p class="mb-6">
-                            Quien suscribe, Director de la <strong>${SCHOOL_NAME}</strong> de ${LOCATION}, ${DECREE},
-                            <strong>CERTIFICA</strong>:
-                        </p>
-                        <p class="mb-6 indent-8">
-                            Que, el alumno(a) <strong class="uppercase">${student.name}</strong>, 
-                            R.U.T. <strong>${student.rut}</strong>, ${body}
-                        </p>
-                        <p class="indent-8">
-                            Se extiende el presente certificado a petición del interesado(a), para los fines que estime conveniente.
-                        </p>
-                    </div>
-
-                    <div class="text-right text-lg mb-12 px-4 font-serif">
-                        ${LOCATION}, ${dateStr}.
-                    </div>
-
-                    <div class="text-center mt-12">
-                        <div class="inline-block border-t border-black pt-2 px-10 font-sans">
-                            <p class="font-bold text-lg uppercase">${DIRECTOR_NAME}</p>
-                            <p class="text-base font-bold">DIRECTOR</p>
-                            <p class="text-sm uppercase">${SCHOOL_NAME}</p>
-                        </div>
-                    </div>
-
+            
+            // LOGO REAL (Asegúrate de que la imagen exista o usa un placeholder si copiaste esto a otro lado)
+            const logoHTML = `
+                <div class="text-center">
+                    <img src="image_8327d8.png" alt="Logo Escuela" style="height: 80px; max-width: 80px;" class="mx-auto"/>
                 </div>
             `;
+            
+            return `
+                <div class="certificate-page p-8 sm:p-12 text-gray-800 leading-relaxed max-w-2xl mx-auto">
+                    <div class="watermark">Desarrollado por ProfeAle</div>
+                
+                    <div class="flex justify-between items-center mb-10 text-xs">
+                        <div class="text-left">
+                            <p class="font-bold">Escuela Agrícola Sagrados Corazones,</p>
+                            <p>Corporación Educacional Veloz Educa</p>
+                        </div>
+                        ${logoHTML}
+                    </div>
+                    
+                    <div class="text-center mb-12">
+                        <h2 class="text-3xl font-serif font-bold tracking-wider border-b-2 border-gray-900 inline-block pb-1 uppercase">${certificateTitle}</h2>
+                    </div>
 
-            certificateContent.innerHTML = html;
-            initialPlaceholder.classList.add('hidden');
-            previewContainer.classList.remove('hidden');
+                    <div class="text-lg font-serif mb-10 text-justify">
+                        <p class="indent-8 mb-4">
+                            Quien suscribe, Director de la ${SCHOOL_NAME} de ${LOCATION}, ${DECREE},
+                            <strong class="font-bold">CERTIFICA:</strong>
+                        </p>
+                        <p class="indent-8">
+                            Que, don(a) <strong class="font-bold border-b border-dashed border-gray-500">${student.fullName}</strong>, 
+                            Rut: <strong class="font-bold border-b border-dashed border-gray-500">${student.rut}</strong>
+                            ${certificateBody}
+                        </p>
+                    </div>
+
+                    <div class="text-lg font-serif mb-12 text-justify">
+                        <p class="indent-8">
+                            Se extiende el presente certificado a petición del interesado, y válido para
+                            los fines que estime conveniente.
+                        </p>
+                    </div>
+
+                    <div class="text-center text-md font-serif mt-6 mb-20">
+                        <p class="font-bold">${dateText}</p>
+                    </div>
+                    
+                    <div class="text-center font-serif mt-8">
+                        <div class="inline-block border-t-2 border-gray-900 pt-2 px-10">
+                            <p class="font-bold text-lg">${DIRECTOR_NAME}</p>
+                            <p class="text-md uppercase">${SCHOOL_NAME}</p>
+                            <p class="text-sm">CORPORACIÓN EDUCACIONAL VELOZ EDUCA</p>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
+
+        // --- MANEJADORES GLOBALES ---
+
+        /**
+         * Inicializa los selectores del GENERADOR basados en el año seleccionado.
+         */
+        function updateGeneratorSelectors() {
+            const selectedYear = yearSelect.value;
+            const applyPromotion = (selectedYear === "2026");
+            
+            groupedStudentsData = processStudentData(applyPromotion);
+            
+            populateCourses(courseSelect, groupedStudentsData);
+            
+            // Resetear selección de alumno
+            studentSelect.innerHTML = '<option value="" disabled selected>-- Seleccione un curso primero --</option>';
+            studentSelect.disabled = true;
+            buttonsSection.classList.add('hidden');
+            certificateContainer.classList.add('hidden');
+        }
+
+        /**
+         * Inicializa los selectores de GESTIÓN (Siempre Base 2025).
+         */
+        function updateManagerSelectors() {
+            rawGroupedStudentsData = processStudentData(false); // Nunca promueve en gestión
+            populateCourses(deleteCourseSelect, rawGroupedStudentsData);
+            
+            deleteStudentSelect.innerHTML = '<option value="" disabled selected>-- Seleccione un curso --</option>';
+            deleteStudentSelect.disabled = true;
+            deleteStudentButton.disabled = true;
+        }
+
+        /**
+         * Llena un selector de cursos dado un dataset.
+         */
+        function populateCourses(selectElement, dataSet) {
+            const courses = Object.keys(dataSet).sort();
+            selectElement.innerHTML = '<option value="" disabled selected>-- Elija un curso --</option>';
+            courses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course;
+                option.textContent = course;
+                selectElement.appendChild(option);
+            });
+        }
+        
+        /**
+         * Llena un selector de alumnos dado el selector de cursos y el dataset correcto.
+         */
+        function populateStudentsForSelector(courseSelector, studentSelector, dataSet, defaultMessage) {
+            const selectedCourse = courseSelector.value;
+            studentSelector.innerHTML = `<option value="" disabled selected>${defaultMessage}</option>`;
+            studentSelector.disabled = true;
+            
+            if (selectedCourse && dataSet[selectedCourse]) {
+                const students = dataSet[selectedCourse] || [];
+                students.forEach(student => {
+                    const option = document.createElement('option');
+                    option.value = student.rut; 
+                    option.textContent = `${student.fullName} (RUT: ${student.rut})`;
+                    studentSelector.appendChild(option);
+                });
+                studentSelector.disabled = false;
+            }
+        }
+
+
+        // --- MANEJADORES DEL GENERADOR ---
+        
+        // Cuando cambia el año, recargamos solo los selectores del generador
+        yearSelect.addEventListener('change', () => {
+            updateGeneratorSelectors();
+        });
+
+        function handleCourseChange() {
+            currentStudent = null;
+            buttonsSection.classList.add('hidden');
+            certificateContainer.classList.add('hidden');
+
+            populateStudentsForSelector(courseSelect, studentSelect, groupedStudentsData, '-- Seleccione un alumno --');
+            
+            studentSelect.classList.add('bg-white');
+            studentSelect.classList.remove('bg-gray-100');
+            regularCertButton.disabled = true;
+            matriculaCertButton.disabled = true;
+        }
+        
+        function handleStudentChange() {
+            const selectedRut = studentSelect.value;
+            const selectedCourse = courseSelect.value;
+            certificateContainer.classList.add('hidden');
+            
+            if (selectedRut && selectedCourse) {
+                currentStudent = groupedStudentsData[selectedCourse].find(s => s.rut === selectedRut);
+                
+                if (currentStudent) {
+                    selectedStudentNameSpan.textContent = currentStudent.fullName;
+                    regularCertButton.disabled = false;
+                    matriculaCertButton.disabled = false;
+                    buttonsSection.classList.remove('hidden');
+                    return;
+                }
+            }
+            
+            currentStudent = null;
+            buttonsSection.classList.add('hidden');
+            regularCertButton.disabled = true;
+            matriculaCertButton.disabled = true;
+        }
+
+        function handleCertificateGeneration(event) {
+            if (!currentStudent) return;
+            const type = event.currentTarget.getAttribute('data-type');
+            const certificateHTML = generateCertificateHTML(currentStudent, type);
+            certificateContent.innerHTML = certificateHTML;
+            certificateContainer.classList.remove('hidden');
+            certificateContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function handlePrint() {
+            window.print();
+        }
+
+        // --- MANEJADORES DE GESTIÓN ---
+
+        /**
+         * Cambia la vista entre el generador y la gestión de alumnos.
+         */
+        function handleTabSwitch(event) {
+            const targetTab = event.currentTarget.getAttribute('data-tab');
+            
+            tabButtons.forEach(btn => btn.classList.remove('active', 'bg-green-500', 'text-white'));
+            event.currentTarget.classList.add('active', 'bg-green-500', 'text-white');
+
+            if (targetTab === 'generator') {
+                tabGeneratorContent.classList.remove('hidden');
+                tabManageContent.classList.add('hidden');
+                updateGeneratorSelectors(); // Refrescar por si hubo cambios en gestión
+            } else if (targetTab === 'manage') {
+                tabManageContent.classList.remove('hidden');
+                tabGeneratorContent.classList.add('hidden');
+                // Recargar selectores de gestión al entrar a la pestaña
+                updateManagerSelectors();
+                deleteMessage.textContent = '';
+                addMessage.textContent = '';
+            }
+        }
+
+        /**
+         * Maneja el cambio de curso en la pestaña de eliminación.
+         */
+        function handleDeleteCourseChange() {
+            // Usamos rawGroupedStudentsData (datos sin promover)
+            populateStudentsForSelector(deleteCourseSelect, deleteStudentSelect, rawGroupedStudentsData, '-- Seleccione un alumno --');
+            deleteStudentButton.disabled = true;
+            deleteMessage.textContent = '';
+        }
+
+        /**
+         * Maneja la selección de alumno en la pestaña de eliminación.
+         */
+        function handleDeleteStudentChange() {
+            deleteStudentButton.disabled = !deleteStudentSelect.value;
+            deleteMessage.textContent = '';
+        }
+
+        /**
+         * Maneja el evento de Añadir Alumno.
+         */
+        function handleAddStudent() {
+            const course = document.getElementById('new-course').value.trim().toUpperCase();
+            const rut = document.getElementById('new-rut').value.trim().toUpperCase();
+            const name1 = document.getElementById('new-name1').value.trim();
+            const name2 = document.getElementById('new-name2').value.trim();
+            const apellidoP = document.getElementById('new-apellidop').value.trim();
+            const apellidoM = document.getElementById('new-apellidom').value.trim();
+
+            if (!course || !rut || !name1 || !apellidoP || !apellidoM) {
+                addMessage.textContent = '❌ Error: Complete Curso, RUT, Nombre y Apellidos.';
+                addMessage.className = 'text-sm pt-1 text-red-500';
+                return;
+            }
+
+            // Añadir al array principal de datos
+            RAW_STUDENT_DATA.push([course, rut, name1, name2, apellidoP, apellidoM]);
+
+            addMessage.textContent = `✅ Alumno ${name1.toUpperCase()} añadido al curso ${course} (Nómina 2025).`;
+            addMessage.className = 'text-sm pt-1 text-green-500';
+
+            // Limpiar campos
+            document.querySelectorAll('#tab-content-manage input').forEach(input => input.value = '');
+            
+            // Recargar selectores en ambas pestañas
+            updateManagerSelectors();
+        }
+
+        /**
+         * Maneja el evento de Eliminar Alumno.
+         */
+        function handleDeleteStudent() {
+            const rutToDelete = deleteStudentSelect.value;
+            const studentFullName = deleteStudentSelect.options[deleteStudentSelect.selectedIndex].textContent.split(' (RUT:')[0];
+
+
+            if (!rutToDelete) return;
+
+            const initialLength = RAW_STUDENT_DATA.length;
+            
+            // Filtrar el array, manteniendo solo los que NO coinciden con el RUT
+            for (let i = RAW_STUDENT_DATA.length - 1; i >= 0; i--) {
+                if (String(RAW_STUDENT_DATA[i][1]).toUpperCase() === rutToDelete) {
+                    RAW_STUDENT_DATA.splice(i, 1);
+                    break; 
+                }
+            }
+
+            if (RAW_STUDENT_DATA.length < initialLength) {
+                deleteMessage.textContent = `✅ Alumno ${studentFullName} eliminado correctamente.`;
+                deleteMessage.className = 'text-sm pt-1 text-green-500';
+            } else {
+                deleteMessage.textContent = '❌ Error: No se encontró al alumno para eliminar.';
+                deleteMessage.className = 'text-sm pt-1 text-red-500';
+            }
+            
+            // Recargar selectores
+            updateManagerSelectors();
+        }
+
+        // --- INICIALIZACIÓN ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Cargar datos iniciales
+            updateGeneratorSelectors();
+            updateManagerSelectors();
+            
+            document.getElementById('loading-message').classList.remove('hidden'); 
+
+            // 1. Listeners para Generador de Certificados
+            courseSelect.addEventListener('change', handleCourseChange);
+            studentSelect.addEventListener('change', handleStudentChange);
+            regularCertButton.addEventListener('click', handleCertificateGeneration);
+            matriculaCertButton.addEventListener('click', handleCertificateGeneration);
+            printButton.addEventListener('click', handlePrint);
+            
+            // 2. Listeners para Pestañas
+            tabButtons.forEach(button => {
+                button.addEventListener('click', handleTabSwitch);
+            });
+            
+            // 3. Listeners para Gestión de Alumnos
+            addStudentButton.addEventListener('click', handleAddStudent);
+            deleteCourseSelect.addEventListener('change', handleDeleteCourseChange);
+            deleteStudentSelect.addEventListener('change', handleDeleteStudentChange);
+            deleteStudentButton.addEventListener('click', handleDeleteStudent);
+        });
     </script>
 </body>
 </html>
