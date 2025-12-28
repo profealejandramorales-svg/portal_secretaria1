@@ -12,11 +12,18 @@
         :root { 
             --primary-color: #0d6efd; /* Azul Bootstrap */
             --secondary-color: #0a58ca; 
-            --bg-color: #f4f6f9; 
+            --bg-color: #ffffff; /* Fondo base blanco */
         }
         
         body { 
-            background-color: var(--bg-color); 
+            /* Configuración del fondo con flores */
+            background-color: var(--bg-color);
+            background-image: url('fondo_flores.jpg'); /* ASEGÚRATE DE QUE LA IMAGEN ESTÉ EN LA CARPETA */
+            background-size: cover;       /* Cubre toda la pantalla */
+            background-position: center;  /* Centra la imagen */
+            background-repeat: no-repeat; /* No repetir (o usa repeat si es un patrón pequeño) */
+            background-attachment: fixed; /* El fondo se mantiene fijo al hacer scroll */
+            
             font-family: 'Segoe UI', system-ui, sans-serif; 
             min-height: 100vh; 
             display: flex; 
@@ -60,7 +67,7 @@
 
         /* Tarjetas de Aplicaciones */
         .app-card { 
-            background: white; 
+            background: rgba(255, 255, 255, 0.95); /* Fondo blanco semitransparente para legibilidad */
             border: none; 
             border-radius: 20px; 
             padding: 30px 20px; 
@@ -74,11 +81,13 @@
             justify-content: flex-start; 
             text-align: center; 
             position: relative; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03); 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            border: 1px solid rgba(255,255,255,0.5);
         }
         .app-card:hover { 
             transform: translateY(-8px); 
             box-shadow: 0 15px 30px rgba(13, 110, 253, 0.15); 
+            background: #ffffff;
         }
         
         .icon-wrapper { 
@@ -112,8 +121,10 @@
             margin-top: auto; 
             padding: 30px; 
             text-align: center; 
-            color: #adb5bd; 
+            color: #6c757d; 
             font-size: 0.8rem; 
+            background: rgba(255,255,255,0.8); /* Fondo para el pie de página */
+            backdrop-filter: blur(5px);
         }
     </style>
 </head>
@@ -121,7 +132,7 @@
 
     <div class="hero">
         <div class="container">
-            <a href="index.html" class="back-btn">
+            <a href="#" class="back-btn">
                 <i class="fa-solid fa-arrow-left me-1"></i> Salir
             </a>
             
@@ -137,7 +148,7 @@
                 <a href="certificados.html" class="app-card">
                     <div class="icon-wrapper"><i class="fa-solid fa-certificate"></i></div>
                     <div class="app-title">Generador Docs</div>
-                    <div class="app-desc">Emisión rápida de certificados de alumno regular y matrícula.</div>
+                    <div class="app-desc">Emisión rápida de certificados de alumno regular y matrícula 2026.</div>
                 </a>
             </div>
 
@@ -145,7 +156,15 @@
                 <a href="permisos.html" class="app-card">
                     <div class="icon-wrapper"><i class="fa-solid fa-business-time"></i></div>
                     <div class="app-title">Permisos Personal</div>
-                    <div class="app-desc">Gestión y control de días administrativos funcionarios.</div>
+                    <div class="app-desc">Gestión y control de días administrativos y permisos funcionarios.</div>
+                </a>
+            </div>
+
+            <div class="col-12 col-md-5 col-lg-4">
+                <a href="citacion.html" class="app-card">
+                    <div class="icon-wrapper"><i class="fa-solid fa-clipboard-user"></i></div>
+                    <div class="app-title">Citación Apoderados</div>
+                    <div class="app-desc">Agendar entrevistas, impresión de colillas y registro histórico.</div>
                 </a>
             </div>
 
