@@ -3,43 +3,38 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Control de Permisos</title>
+  <title>Control de Permisos - Gestión 2025/2026</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @media print {
       .no-print { display: none !important; }
       body * { visibility: hidden !important; }
+      
       #voucher-print-area, #voucher-print-area *,
       #report-print-area , #report-print-area * { visibility: visible !important; }
+      
       #voucher-print-area, #report-print-area {
         display:block !important; position:absolute !important; inset:0 !important;
         width:100% !important; background:#fff !important; z-index:9999 !important;
       }
+      table { width: 100% !important; border-collapse: collapse !important; }
+      th, td { border: 1px solid #ddd !important; color: #000 !important; }
     }
   </style>
 </head>
-<body class="bg-gray-50">
-  <div id="root"><div class="p-6 text-center text-gray-600">Cargando aplicación...</div></div>
+<body class="bg-gray-50 font-sans">
+  <div id="root"><div class="p-6 text-center text-gray-600">Cargando sistema...</div></div>
 
-  <!-- React -->
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-
-  <!-- Firebase compat -->
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-
-  <!-- Recharts (opcional) -->
-  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.min.js"></script>
 
   <script>
 (() => {
   const { useState, useEffect, useMemo, Fragment } = React;
-  // Evitar que falle si Recharts no cargó
-  const R = window.Recharts || {};
-  const { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } = R;
 
-  /* ============ CONFIG ============ */
+  /* ============ CONFIGURACIÓN ============ */
   const firebaseConfig = {
     apiKey: "AIzaSyBnSMVCH0yyYUWk5z54kTIPTrWkyoeWs-I",
     authDomain: "suspenciones-40d0c.firebaseapp.com",
@@ -61,7 +56,8 @@
 
   /* ============ HELPERS ============ */
   const cleanRun = (s) => (s || "").replace(/[.\-]/g, "").toUpperCase();
-  const todayLocal = () => new Date().toLocaleString('sv-SE', { timeZone: CL_TZ }).slice(0, 10); // yyyy-mm-dd
+  const todayLocal = () => new Date().toLocaleString('sv-SE', { timeZone: CL_TZ }).slice(0, 10); 
+  
   const formatDateCL = (iso) => {
     if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "N/A";
     const [y,m,d] = iso.split("-").map(Number);
@@ -69,6 +65,16 @@
                    "agosto","septiembre","octubre","noviembre","diciembre"];
     return `${d} de ${meses[m-1]} de ${y}`;
   };
+
+  // Semestres: 1 (Mar-Jul), 2 (Ago-Dic), 0 (Ene-Feb)
+  const getSemester = (dateStr) => {
+    if(!dateStr) return 0;
+    const m = parseInt(dateStr.split('-')[1], 10);
+    if(m >= 3 && m <= 7) return 1; 
+    if(m >= 8 && m <= 12) return 2; 
+    return 0; 
+  };
+
   const calcHours = (type, duration, t1, t2) => {
     if (type === "hours") return Number(duration||0);
     if (type === "half-day") return JORNADA/2;
@@ -81,6 +87,7 @@
     }
     return 0;
   };
+
   const durLabel = (type, duration, hours, t1, t2) => {
     const h = hours ?? calcHours(type, duration, t1, t2);
     if (type==="hours") return `${duration} hora${duration>1?"s":""}`;
@@ -90,9 +97,14 @@
     return "—";
   };
 
-  /* ============ NÓMINA (seed/merge) ============ */
+  const labelReason = (r) => {
+    if(r==="administrative") return "Administrativo";
+    if(r==="checkup") return "Control médico";
+    return "Otro";
+  };
+
+  /* ============ NÓMINA ============ */
   const STAFF_SEED = [
-    // DOCENTES
     { run:'17.156.961-3', nombre:'MATÍAS FABRICIANO PESSO SABANDO', rol:'Profesor', jornada:11 },
     { run:'17.185.396-6', nombre:'JAVIER IGNACIO LARA FAÚNDEZ', rol:'Profesor', jornada:40 },
     { run:'20.520.049-5', nombre:'CECILIA DE LOS ANGELES MUÑOZ SALAZAR', rol:'Profesor', jornada:24 },
@@ -106,7 +118,6 @@
     { run:'19.010.251-3', nombre:'NICOLÁS IGNACIO LÓPEZ GONZÁLEZ', rol:'Profesor', jornada:44 },
     { run:'17.039.979-K', nombre:'JUAN PABLO RAMÍREZ ACUÑA', rol:'Profesor', jornada:44 },
     { run:'12.374.465-9', nombre:'ALEJANDRA MORALES', rol:'Profesor', jornada:44 },
-    // ASISTENTES
     { run:'9.651.728-9',  nombre:'BERNARDITA ROSA LOBOS VERGARA', rol:'MONITOR/A TALLER', jornada:8 },
     { run:'11.285.289-1', nombre:'LUZMILA DEL PILAR GONZÁLEZ ARAVENA', rol:'AUXILIAR DE ASEO', jornada:44 },
     { run:'9.950.645-8',  nombre:'LUIS EDGARDO MARIMÁN MARIMÁN', rol:'CUIDADO ESTABLECIMIENTO', jornada:44 },
@@ -130,519 +141,470 @@
     await batch.commit();
   }
 
-  /* ============ Voucher ============ */
+  /* ============ VOUCHER ============ */
   function Voucher({ permission, staffList, allPerms, folio, onClose }) {
     const st = staffList.find(s => cleanRun(s.run) === permission.staffId);
-    const staffRun = st?.run || "N/A";
-    const staffRol = st?.rol || "—";
     const currHours = calcHours(permission.type, permission.duration, permission.timeStart, permission.timeEnd);
+    const permYear = (permission.date || "").slice(0, 4);
+    
+    // Acumulados ANUALES para las cajas de abajo
     const totalStaffHours = (allPerms||[])
-      .filter(p => p.staffId === permission.staffId)
+      .filter(p => p.staffId === permission.staffId && (p.date||"").slice(0,4) === permYear)
       .reduce((acc,p)=>acc+calcHours(p.type,p.duration,p.timeStart,p.timeEnd),0);
     const totalStaffDays = totalStaffHours / JORNADA;
 
-    return (
-      React.createElement("div",{id:"voucher-print-area",className:"fixed inset-0 z-50 overflow-y-auto bg-gray-100 p-6"},
-        React.createElement("div",{className:"max-w-3xl mx-auto bg-white rounded-xl shadow border p-8"},
-          React.createElement("div",{className:"flex justify-between items-start border-b pb-3 mb-6"},
-            React.createElement("div",{className:"text-sm text-gray-500"},"Desarrollado por ProfeAle"),
-            React.createElement("div",{className:"text-right"},
-              React.createElement("p",{className:"text-green-600 font-bold text-lg"},"FOLIO: ",folio),
-              React.createElement("p",{className:"text-xs text-gray-500"},"Fecha: ", new Date().toLocaleDateString('es-CL',{timeZone:CL_TZ})),
-              React.createElement("p",{className:"text-xs text-gray-500"},"Hora: ",  new Date().toLocaleTimeString('es-CL',{hour12:false,timeZone:CL_TZ}))
+    // --- LÓGICA DE LÍMITE SEMESTRAL (16h vs 8h) ---
+    let adminWarning = null;
+    const yearNum = parseInt(permYear, 10);
+    
+    // Definimos el límite según el año
+    let limitHours = 0;
+    if (yearNum === 2025) limitHours = 16;
+    else if (yearNum === 2026) limitHours = 8;
+
+    // Solo verificamos si es ADMINISTRATIVO y hay límite definido para ese año
+    if (permission.reason === "administrative" && limitHours > 0) {
+      const currentSem = getSemester(permission.date);
+      if (currentSem > 0) { 
+        // Filtramos solo los administrativos de este funcionario en este semestre
+        const adminPermsInSem = (allPerms||[])
+          .filter(p => 
+            p.staffId === permission.staffId && 
+            p.reason === "administrative" && 
+            (p.date||"").slice(0,4) === permYear &&
+            getSemester(p.date) === currentSem
+          )
+          .sort((a,b) => (a.timestamp||0) - (b.timestamp||0)); 
+
+        // Sumamos cronológicamente para ver en qué momento se pasó
+        let accumulated = 0;
+        let isExceeded = false;
+        
+        for (let p of adminPermsInSem) {
+            const h = calcHours(p.type, p.duration, p.timeStart, p.timeEnd);
+            accumulated += h;
+            
+            // Si llegamos al permiso actual
+            if (p.id === permission.id) {
+                // Si el acumulado (incluyendo este) supera el límite, mostramos alerta
+                if (accumulated > limitHours) isExceeded = true;
+                break;
+            }
+        }
+
+        if (isExceeded) {
+          adminWarning = React.createElement("div", {className: "mt-4 border border-red-400 bg-red-100 p-3 rounded text-center"},
+            React.createElement("div", {className: "flex items-center justify-center gap-2 text-red-700 font-bold uppercase mb-1"},
+              React.createElement("span", null, "⚠️"),
+              React.createElement("span", null, "Advertencia")
+            ),
+            React.createElement("p", {className: "text-red-800 text-sm"}, 
+              `Cupo semestral administrativo excedido.`
+            ),
+            React.createElement("p", {className: "text-red-600 text-xs mt-1"}, 
+              `Llevas ${accumulated.toFixed(2)} hrs (Tope ${yearNum}: ${limitHours} hrs)`
+            )
+          );
+        }
+      }
+    }
+
+    return React.createElement("div",{id:"voucher-print-area",className:"fixed inset-0 z-50 overflow-y-auto bg-gray-100 p-6"},
+        React.createElement("div",{className:"max-w-3xl mx-auto bg-white rounded-xl shadow border p-8 relative flex flex-col justify-between min-h-[500px]"},
+          React.createElement("div", null,
+            // Header
+            React.createElement("div",{className:"flex justify-between items-start border-b pb-3 mb-6"},
+              React.createElement("div",null,
+                 React.createElement("img",{src:"logo.jpg", className:"h-20 w-auto object-contain", alt:"Logo Escuela"})
+              ),
+              React.createElement("div",{className:"text-right"},
+                React.createElement("p",{className:"text-green-600 font-bold text-xl"},"FOLIO: ",folio),
+                React.createElement("p",{className:"text-xs text-gray-500 mt-1"},"Emisión: ", new Date().toLocaleDateString('es-CL',{timeZone:CL_TZ})," ", new Date().toLocaleTimeString('es-CL',{hour12:false,timeZone:CL_TZ}))
+              )
+            ),
+            
+            React.createElement("h2",{className:"text-2xl font-extrabold text-green-700 mb-1 uppercase tracking-tight"},"Comprobante de Permiso"),
+            React.createElement("p",{className:"text-xl font-bold uppercase"}, permission.staffName),
+            React.createElement("p",{className:"text-sm text-gray-600 mb-6"},"R.U.N.: ", st?.run || "N/A", " | Cargo: ", st?.rol || "—"),
+
+            React.createElement("div",{className:"grid md:grid-cols-2 gap-y-6 gap-x-8"},
+              React.createElement("div",null,
+                React.createElement("p",{className:"text-xs text-gray-500 font-semibold uppercase"},"Fecha"),
+                React.createElement("p",{className:"font-bold text-lg"}, formatDateCL(permission.date))
+              ),
+              React.createElement("div",null,
+                React.createElement("p",{className:"text-xs text-gray-500 font-semibold uppercase"},"Duración"),
+                React.createElement("p",{className:"font-bold text-blue-700 text-lg"}, durLabel(permission.type,permission.duration,currHours,permission.timeStart,permission.timeEnd))
+              ),
+              React.createElement("div",null,
+                React.createElement("p",{className:"text-xs text-gray-500 font-semibold uppercase"},"Motivo"),
+                React.createElement("p",{className:"font-bold text-gray-800"}, labelReason(permission.reason))
+              ),
+              React.createElement("div",null,
+                React.createElement("p",{className:"text-xs text-gray-500 font-semibold uppercase"},"Goce de sueldo"),
+                React.createElement("p",{className:`font-bold ${permission.isPaid?'text-emerald-700':'text-red-700'}`}, permission.isPaid?"Sí":"No")
+              )
+            ),
+            
+            // Aquí va la advertencia si corresponde
+            adminWarning,
+
+            React.createElement("div",{className:"grid grid-cols-2 gap-3 p-4 rounded border bg-gray-50 mt-8"},
+              React.createElement("div",null,
+                React.createElement("p",{className:"text-xs text-gray-500 font-semibold uppercase"},`Acumulado Año ${permYear} (horas)`),
+                React.createElement("p",{className:"font-extrabold text-emerald-700 text-xl"}, totalStaffHours.toFixed(2)," h")
+              ),
+              React.createElement("div",null,
+                React.createElement("p",{className:"text-xs text-gray-500 font-semibold uppercase"},`Acumulado Año ${permYear} (días)`),
+                React.createElement("p",{className:"font-extrabold text-indigo-700 text-xl"}, totalStaffDays.toFixed(2)," días")
+              )
+            ),
+
+            React.createElement("div",{className:"grid grid-cols-2 gap-12 mt-16 text-sm"},
+              React.createElement("div",null,
+                React.createElement("div",{className:"border-t border-gray-400 pt-2 text-center font-semibold"},"Firma del Funcionario"),
+                React.createElement("p",{className:"text-xs text-center text-gray-500 uppercase"},"(",permission.staffName,")")
+              ),
+              React.createElement("div",null,
+                React.createElement("div",{className:"border-t border-gray-400 pt-2 text-center font-semibold"},"Firma Representante Empresa"),
+                React.createElement("p",{className:"text-xs text-center text-gray-500 uppercase"},"(",COMPANY_REP_NAME," - Dirección )")
+              )
             )
           ),
-          React.createElement("h2",{className:"text-2xl font-extrabold text-green-700 mb-1"},"COMPROBANTE DE PERMISO"),
-          React.createElement("p",{className:"text-xl font-bold"}, permission.staffName),
-          React.createElement("p",{className:"text-sm text-gray-600 mb-4"},"R.U.N.: ",staffRun," | Cargo: ",staffRol),
 
-          React.createElement("div",{className:"grid md:grid-cols-2 gap-6"},
-            React.createElement("div",null,
-              React.createElement("p",{className:"text-xs text-gray-500 font-semibold"},"Fecha del permiso"),
-              React.createElement("p",{className:"font-bold"}, formatDateCL(permission.date))
-            ),
-            React.createElement("div",null,
-              React.createElement("p",{className:"text-xs text-gray-500 font-semibold"},"Duración aprobada"),
-              React.createElement("p",{className:"font-bold text-blue-700"}, durLabel(permission.type,permission.duration,currHours,permission.timeStart,permission.timeEnd))
-            ),
-            React.createElement("div",null,
-              React.createElement("p",{className:"text-xs text-gray-500 font-semibold"},"Motivo"),
-              React.createElement("p",{className:"font-bold text-red-600"}, permission.reason==="checkup"?"Control médico":"Otro")
-            ),
-            React.createElement("div",null,
-              React.createElement("p",{className:"text-xs text-gray-500 font-semibold"},"Goce de sueldo"),
-              React.createElement("p",{className:`font-bold ${permission.isPaid?'text-emerald-700':'text-red-700'}`}, permission.isPaid?"Sí":"No")
-            )
-          ),
-
-          React.createElement("div",{className:"grid grid-cols-2 gap-3 p-3 rounded border bg-gray-50 mt-6"},
-            React.createElement("div",null,
-              React.createElement("p",{className:"text-xs text-gray-500 font-semibold"},"Total acumulado (horas)"),
-              React.createElement("p",{className:"font-extrabold text-emerald-700 text-lg"}, totalStaffHours.toFixed(2)," h")
-            ),
-            React.createElement("div",null,
-              React.createElement("p",{className:"text-xs text-gray-500 font-semibold"},`Total acumulado (días, ${JORNADA}h = 1 día)`),
-              React.createElement("p",{className:"font-extrabold text-indigo-700 text-lg"}, totalStaffDays.toFixed(2)," días")
-            )
-          ),
-
-          React.createElement("div",{className:"grid grid-cols-2 gap-12 mt-14 text-sm"},
-            React.createElement("div",null,
-              React.createElement("div",{className:"border-t pt-2 text-center font-semibold"},"Firma del Funcionario"),
-              React.createElement("p",{className:"text-xs text-center text-gray-600"},"(",permission.staffName,")")
-            ),
-            React.createElement("div",null,
-              React.createElement("div",{className:"border-t pt-2 text-center font-semibold"},"Firma del Representante Empresa"),
-              React.createElement("p",{className:"text-xs text-center text-gray-600"},"(",COMPANY_REP_NAME," - Dirección )")
-            )
-          ),
-
-          React.createElement("div",{className:"no-print flex justify-center gap-3 mt-8"},
-            React.createElement("button",{className:"px-4 py-2 rounded bg-blue-600 text-white",onClick:()=>window.print()},"Imprimir"),
-            React.createElement("button",{className:"px-4 py-2 rounded bg-gray-400 text-white",onClick:onClose},"Cerrar")
+          // Footer
+          React.createElement("div", null, 
+             React.createElement("div",{className:"mt-8 pt-4 border-t text-center text-[10px] text-gray-400"},
+                "Sistema de Gestión de Permisos - Desarrollado por ProfeAle"
+             ),
+             React.createElement("div",{className:"no-print flex justify-center gap-3 mt-4"},
+                React.createElement("button",{className:"px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700",onClick:()=>window.print()},"Imprimir"),
+                React.createElement("button",{className:"px-4 py-2 rounded bg-gray-400 text-white hover:bg-gray-500",onClick:onClose},"Cerrar")
+             )
           )
         )
-      )
     );
   }
 
-  /* ============ APP ============ */
+  /* ============ APP PRINCIPAL ============ */
   function App() {
-    if (initErr) {
-      return React.createElement("div",{className:"max-w-3xl mx-auto p-6"},
-        React.createElement("div",{className:"bg-red-50 border border-red-400 text-red-700 p-3 rounded"},
-          "No se pudo iniciar Firebase: ", initErr
-        )
-      );
-    }
+    if (initErr) return React.createElement("div",{className:"p-6 text-red-700"}, "Error Firebase: "+initErr);
 
+    const [workingYear, setWorkingYear] = useState("2025");
     const [err,setErr] = useState(null);
     const [staff,setStaff] = useState([]);
     const [perms,setPerms] = useState([]);
     const [tab,setTab] = useState("register");
+    const [summaryView, setSummaryView] = useState("detail"); 
 
-    // formulario
     const [staffId,setStaffId] = useState("");
     const [date,setDate] = useState(todayLocal());
     const [type,setType] = useState("day");
     const [duration,setDuration] = useState(1);
     const [tStart,setTStart] = useState("08:00");
     const [tEnd,setTEnd] = useState("09:00");
-    const [reason,setReason] = useState("checkup");
+    const [reason,setReason] = useState("administrative"); 
     const [isPaid,setIsPaid] = useState(true);
     const [details,setDetails] = useState("");
 
-    // edición / impresión
     const [edit,setEdit] = useState(null);
     const [printVoucher,setPrintVoucher] = useState(null);
     const [folio,setFolio] = useState("");
-
-    // filtros
     const [fMonth,setFMonth] = useState("");
-    const [fYear,setFYear]   = useState("");
     const [fStaff,setFStaff] = useState("");
 
-    // carga inicial
     useEffect(() => {
-      (async () => {
-        try { await seedStaffMerge(); } catch(e){ setErr("Error al sincronizar nómina: "+e.message); }
-      })();
-
-      const unsubStaff = db.collection(DB_STAFF).onSnapshot(
-        snap => {
-          const arr = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-          arr.sort((a,b)=> (a.nombre||"").localeCompare(b.nombre||""));
-          setStaff(arr);
-          if (!staffId && arr.length) setStaffId(cleanRun(arr[0].run));
-        },
-        e => setErr("Error al leer staff: "+e.message)
-      );
-
-      const unsubPerms = db.collection(DB_PERMS).onSnapshot(
-        snap => {
-          const arr = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-          arr.sort((a,b) => (a.timestamp||0)-(b.timestamp||0) || ((a.date||"").localeCompare(b.date||"")));
-          setPerms(arr);
-        },
-        e => setErr("Error al suscribir permisos: "+e.message)
-      );
-
-      return () => { unsubStaff && unsubStaff(); unsubPerms && unsubPerms(); };
+      seedStaffMerge().catch(e => console.error(e));
+      const u1 = db.collection(DB_STAFF).onSnapshot(s => {
+        const arr = s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>(a.nombre||"").localeCompare(b.nombre||""));
+        setStaff(arr);
+        if(!staffId && arr.length) setStaffId(cleanRun(arr[0].run));
+      });
+      const u2 = db.collection(DB_PERMS).onSnapshot(s => {
+        setPerms(s.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)));
+      });
+      return () => { u1(); u2(); };
     },[]);
 
-    const summary = useMemo(() => {
-      const roleHours = { Profesor:0, Asistente:0, Otro:0 };
-      perms.forEach(p=>{
-        const st = staff.find(s=>cleanRun(s.run)===p.staffId);
-        const rol = st?.rol || "Otro";
-        const bucket = rol==="Profesor" ? "Profesor" : "Asistente";
-        roleHours[bucket] = (roleHours[bucket]||0) + calcHours(p.type,p.duration,p.timeStart,p.timeEnd);
-      });
-      const months = [...new Set(perms.map(p=>p.date?.slice(0,7)).filter(Boolean))].sort();
-      const years  = [...new Set(perms.map(p=>p.date?.slice(0,4)).filter(Boolean))].sort();
+    useEffect(() => {
+      if(date.split('-')[0] !== workingYear) setDate(`${workingYear}-01-01`);
+    }, [workingYear]);
 
-      const filtered = perms.filter(p=>{
+    // Lógica Resumen (Cards)
+    const summary = useMemo(() => {
+      const yearPerms = perms.filter(p => (p.date || "").startsWith(workingYear));
+      const filtered = yearPerms.filter(p=>{
         const okStaff = fStaff ? p.staffId===fStaff : true;
         const okMonth = fMonth ? p.date?.slice(0,7)===fMonth : true;
-        const okYear  = fYear  ? p.date?.slice(0,4)===fYear  : true;
-        return okStaff && okMonth && okYear;
+        return okStaff && okMonth;
       });
+
+      // Agrupación de métricas (Profesores vs Asistentes)
+      const stats = { 
+        Profesor: { hours: 0, count: 0 }, 
+        Asistente: { hours: 0, count: 0 } 
+      };
+
+      yearPerms.forEach(p=>{
+        const st = staff.find(s=>cleanRun(s.run)===p.staffId);
+        const rol = (st?.rol || "").toLowerCase();
+        const bucket = rol.includes("profesor") ? "Profesor" : "Asistente";
+        const h = calcHours(p.type,p.duration,p.timeStart,p.timeEnd);
+        stats[bucket].hours += h;
+        stats[bucket].count += 1;
+      });
+
+      const months = [...new Set(yearPerms.map(p=>p.date?.slice(0,7)).filter(Boolean))].sort();
       const totalHours = filtered.reduce((a,p)=>a+calcHours(p.type,p.duration,p.timeStart,p.timeEnd),0);
-      const chartData = Object.entries(roleHours).map(([rol,totalHours])=>({rol,totalHours}));
-      return { chartData, months, years, filtered, totalHours, totalDays:(totalHours/JORNADA).toFixed(2) };
-    },[perms,staff,fMonth,fYear,fStaff]);
+
+      return { stats, months, filtered, totalHours, totalDays:(totalHours/JORNADA).toFixed(2) };
+    },[perms, staff, fMonth, fStaff, workingYear]);
+
+    // Tabla por Funcionario
+    const staffStats = useMemo(() => {
+      if (!staff.length) return [];
+      return staff.map(s => {
+        const sId = cleanRun(s.run);
+        const myPerms = perms.filter(p => p.staffId === sId && (p.date || "").startsWith(workingYear));
+        const totalHours = myPerms.reduce((acc, p) => acc + calcHours(p.type, p.duration, p.timeStart, p.timeEnd), 0);
+        return {
+          id: s.id, run: s.run, nombre: s.nombre, rol: s.rol,
+          count: myPerms.length, totalHours: totalHours, totalDays: totalHours / JORNADA
+        };
+      }).sort((a,b) => b.totalHours - a.totalHours);
+    }, [staff, perms, workingYear]);
 
     const handleSave = async (e) => {
-      e?.preventDefault?.();
-      if (!staffId || !date) return alert("Faltan campos");
+      e?.preventDefault();
+      if(!staffId || !date) return alert("Faltan datos");
       const st = staff.find(s=>cleanRun(s.run)===staffId);
-      const newP = {
-        staffId, staffName: st?.nombre || "Desconocido", date,
-        type, duration: type==="hours"?Number(duration):null,
-        timeStart: type==="time-range"?tStart:null,
-        timeEnd:   type==="time-range"?tEnd:null,
-        reason, isPaid, details, timestamp: Date.now()
-      };
       try {
-        await db.collection(DB_PERMS).add(newP);
-        setDate(todayLocal()); setType("day"); setDuration(1); setTStart("08:00"); setTEnd("09:00");
-        setReason("checkup"); setIsPaid(true); setDetails(""); setTab("summary");
-      } catch(e){ setErr("Error al guardar: "+e.message); }
+        await db.collection(DB_PERMS).add({
+          staffId, staffName: st?.nombre || "N/A", date, type, 
+          duration: type==="hours"?Number(duration):null,
+          timeStart: type==="time-range"?tStart:null, timeEnd: type==="time-range"?tEnd:null,
+          reason, isPaid, details, timestamp: Date.now()
+        });
+        setTab("summary"); setDetails("");
+      } catch(e){ alert(e.message); }
     };
 
-    const handleDelete = async (id) => {
-      if (!confirm("¿Eliminar permiso?")) return;
-      try { await db.collection(DB_PERMS).doc(id).delete(); }
-      catch(e){ setErr("Error al eliminar: "+e.message); }
-    };
-
+    const handleDelete = async (id) => { if(confirm("¿Borrar?")) await db.collection(DB_PERMS).doc(id).delete(); };
+    
     const handleUpdate = async () => {
-      if (!edit) return;
-      const payload = {
-        staffId: edit.staffId,
-        staffName: edit.staffName,
-        date: edit.date,
-        type: edit.type,
-        duration: edit.type==="hours" ? Number(edit.duration) : null,
-        timeStart: edit.type==="time-range" ? edit.timeStart : null,
-        timeEnd:   edit.type==="time-range" ? edit.timeEnd   : null,
-        reason: edit.reason,
-        isPaid: edit.isPaid,
-        details: edit.details
-      };
-      try { await db.collection(DB_PERMS).doc(edit.id).update(payload); setEdit(null); }
-      catch(e){ alert("Error al actualizar: "+e.message); }
+      if(!edit) return;
+      try {
+        await db.collection(DB_PERMS).doc(edit.id).update({
+          staffId:edit.staffId, date:edit.date, type:edit.type, 
+          duration: edit.type==="hours"?Number(edit.duration):null,
+          timeStart: edit.type==="time-range"?edit.timeStart:null, 
+          timeEnd: edit.type==="time-range"?edit.timeEnd:null,
+          reason:edit.reason, isPaid:edit.isPaid, details:edit.details
+        });
+        setEdit(null);
+      } catch(e){ alert(e.message); }
     };
 
-    const computeFolio = (permId) => {
-      const year = (new Date().toLocaleString('en-CA',{timeZone:CL_TZ})).slice(0,4);
-      const permsYear = perms.filter(p => (p.date||"").slice(0,4)===year);
-      const idx = permsYear.findIndex(p => p.id === permId);
-      return (idx>=0 ? (idx+1) : "N/A") + "/" + year;
+    const computeFolio = (perm) => {
+      const pYear = (perm.date||"").slice(0,4);
+      const yearPerms = perms.filter(p => (p.date||"").startsWith(pYear)).sort((a,b) => (a.timestamp||0)-(b.timestamp||0));
+      return (yearPerms.findIndex(p => p.id === perm.id) + 1) + "/" + pYear;
     };
 
-    const TabBtn = ({id,children}) =>
-      React.createElement("button",
-        {onClick:()=>setTab(id),
-         className:`px-4 py-2 rounded-t font-semibold ${tab===id?'bg-green-700 text-white':'bg-gray-200 hover:bg-gray-300'}`},
-        children
-      );
+    const TabBtn = ({id,children}) => React.createElement("button", {onClick:()=>setTab(id), className:`px-4 py-2 rounded-t font-semibold ${tab===id?'bg-green-700 text-white':'bg-gray-200 hover:bg-gray-300'}`}, children);
 
-    /* ===== UI ===== */
+    // --- UI PRINCIPAL ---
     const mainUI = React.createElement("div",{className:`max-w-6xl mx-auto p-6 ${printVoucher?'hidden print:hidden':''}`},
-      React.createElement("h1",{className:"text-3xl font-extrabold text-green-800 mb-4"},"Control de Permisos"),
-      err && React.createElement("div",{className:"bg-red-50 border border-red-400 text-red-700 p-3 rounded mb-4"}, err),
+      
+      // Header Ciclo Escolar
+      React.createElement("div",{className:"flex justify-between items-center mb-6 border-b pb-4"},
+        React.createElement("h1",{className:"text-2xl font-bold text-green-800"},"Gestión de Permisos"),
+        React.createElement("div",{className:"flex items-center gap-2"},
+          React.createElement("span",{className:"text-xs font-bold uppercase text-gray-400"},"CICLO:"),
+          React.createElement("select",{value: workingYear, onChange: e => setWorkingYear(e.target.value), className: "font-bold text-green-700 text-lg bg-transparent border-none cursor-pointer"},
+              ["2024","2025","2026"].map(y=>React.createElement("option",{key:y,value:y},y))
+          )
+        )
+      ),
 
-      React.createElement("div",{className:"flex gap-2 border-b border-green-700 mb-6"},
+      // Navegación
+      React.createElement("div",{className:"flex gap-2 mb-6"},
         React.createElement(TabBtn,{id:"register"},"Registrar"),
-        React.createElement(TabBtn,{id:"summary"},"Resumen"),
-        React.createElement(TabBtn,{id:"manage"},"Gestión")
+        React.createElement(TabBtn,{id:"summary"},`Resumen ${workingYear}`),
+        React.createElement(TabBtn,{id:"manage"},"Nómina")
       ),
 
-      /* Registrar */
-      tab==="register" && React.createElement("form",{onSubmit:handleSave,className:"bg-white rounded-xl shadow p-6 space-y-4"},
+      // --- FORMULARIO REGISTRO ---
+      tab==="register" && React.createElement("form",{onSubmit:handleSave,className:"bg-white rounded shadow p-6 space-y-4"},
         React.createElement("div",{className:"grid md:grid-cols-2 gap-4"},
-          React.createElement("div",null,
-            React.createElement("label",{className:"block text-sm mb-1"},"Funcionario"),
-            React.createElement("select",{value:staffId,onChange:e=>setStaffId(e.target.value),className:"w-full p-3 border rounded"},
-              staff.length ? staff.map(s=>React.createElement("option",{key:s.id,value:cleanRun(s.run)},`${s.nombre} (${s.rol})`))
-                           : [React.createElement("option",{key:"-",value:""},"(Cargando nómina)")]
-            )
+          React.createElement("div",null, React.createElement("label",{className:"text-sm"},"Funcionario"), 
+            React.createElement("select",{value:staffId,onChange:e=>setStaffId(e.target.value),className:"w-full p-2 border rounded"}, staff.map(s=>React.createElement("option",{key:s.id,value:cleanRun(s.run)},s.nombre)))
           ),
-          React.createElement("div",null,
-            React.createElement("label",{className:"block text-sm mb-1"},"Fecha"),
-            React.createElement("input",{type:"date",value:date,onChange:e=>setDate(e.target.value),className:"w-full p-3 border rounded"})
-          )
-        ),
-        React.createElement("div",{className:"grid md:grid-cols-4 gap-4 items-end"},
-          React.createElement("div",{className:"md:col-span-2"},
-            React.createElement("label",{className:"block text-sm mb-1"},"Tipo"),
-            React.createElement("select",{value:type,onChange:e=>{setType(e.target.value); if(e.target.value!=='hours')setDuration(1);},className:"w-full p-3 border rounded"},
-              React.createElement("option",{value:"day"},"Día completo (8h)"),
-              React.createElement("option",{value:"half-day"},"Medio día (4h)"),
-              React.createElement("option",{value:"hours"},"Por horas (manual)"),
-              React.createElement("option",{value:"time-range"},"Por horas (rango)")
-            )
-          ),
-          type==="hours" && React.createElement("div",null,
-            React.createElement("label",{className:"block text-sm mb-1"},"N° Horas"),
-            React.createElement("input",{type:"number",step:"0.5",min:"0.5",max:"8",value:duration,onChange:e=>setDuration(e.target.value),className:"w-full p-3 border rounded"})
-          ),
-          type==="time-range" && React.createElement(Fragment,null,
-            React.createElement("div",null,
-              React.createElement("label",{className:"block text-sm mb-1"},"Desde"),
-              React.createElement("input",{type:"time",value:tStart,onChange:e=>setTStart(e.target.value),className:"w-full p-3 border rounded"})
-            ),
-            React.createElement("div",null,
-              React.createElement("label",{className:"block text-sm mb-1"},"Hasta"),
-              React.createElement("input",{type:"time",value:tEnd,onChange:e=>setTEnd(e.target.value),className:"w-full p-3 border rounded"})
-            )
+          React.createElement("div",null, React.createElement("label",{className:"text-sm"},"Fecha"), 
+            React.createElement("input",{type:"date",value:date,onChange:e=>setDate(e.target.value),className:"w-full p-2 border rounded"})
           )
         ),
         React.createElement("div",{className:"grid md:grid-cols-3 gap-4"},
-          React.createElement("div",null,
-            React.createElement("label",{className:"block text-sm mb-1"},"Motivo"),
-            React.createElement("select",{value:reason,onChange:e=>setReason(e.target.value),className:"w-full p-3 border rounded"},
-              React.createElement("option",{value:"checkup"},"Control médico"),
-              React.createElement("option",{value:"other"},"Otro")
-            )
-          ),
-          React.createElement("div",null,
-            React.createElement("label",{className:"block text-sm mb-1"},"Goce de sueldo"),
-            React.createElement("select",{value:String(isPaid),onChange:e=>setIsPaid(e.target.value==='true'),className:"w-full p-3 border rounded"},
-              React.createElement("option",{value:"true"},"Sí"),
-              React.createElement("option",{value:"false"},"No")
-            )
-          ),
-          React.createElement("div",null,
-            React.createElement("label",{className:"block text-sm mb-1"},"Detalles (opcional)"),
-            React.createElement("input",{type:"text",value:details,onChange:e=>setDetails(e.target.value),className:"w-full p-3 border rounded"})
-          )
+           React.createElement("div",null, React.createElement("label",{className:"text-sm"},"Tipo"),
+             React.createElement("select",{value:type,onChange:e=>{setType(e.target.value);if(e.target.value!=='hours')setDuration(1);},className:"w-full p-2 border rounded"}, 
+               ["day","half-day","hours","time-range"].map(t=>React.createElement("option",{key:t,value:t},t==="day"?"Día completo":t==="half-day"?"Medio día":t==="hours"?"Horas manual":"Rango horas"))
+             )
+           ),
+           type==="hours" && React.createElement("div",null, React.createElement("label",{className:"text-sm"},"Cant. Horas"),
+             React.createElement("input",{type:"number",step:"0.5",value:duration,onChange:e=>setDuration(e.target.value),className:"w-full p-2 border rounded"})
+           ),
+           type==="time-range" && React.createElement(Fragment,null,
+             React.createElement("div",null, React.createElement("label",{className:"text-sm"},"Desde"), React.createElement("input",{type:"time",value:tStart,onChange:e=>setTStart(e.target.value),className:"w-full p-2 border rounded"})),
+             React.createElement("div",null, React.createElement("label",{className:"text-sm"},"Hasta"), React.createElement("input",{type:"time",value:tEnd,onChange:e=>setTEnd(e.target.value),className:"w-full p-2 border rounded"}))
+           )
         ),
-        React.createElement("button",{type:"submit",className:"py-3 px-4 bg-green-600 text-white font-bold rounded"},"Guardar permiso")
+        React.createElement("div",{className:"grid md:grid-cols-2 gap-4"},
+           React.createElement("div",null, React.createElement("label",{className:"text-sm"},"Motivo"),
+             React.createElement("select",{value:reason,onChange:e=>setReason(e.target.value),className:"w-full p-2 border rounded"},
+               React.createElement("option",{value:"administrative"},"Administrativo"),
+               React.createElement("option",{value:"checkup"},"Control Médico"),
+               React.createElement("option",{value:"other"},"Otro")
+             )
+           ),
+           React.createElement("div",null, React.createElement("label",{className:"text-sm"},"¿Con goce de sueldo?"),
+             React.createElement("select",{value:String(isPaid),onChange:e=>setIsPaid(e.target.value==='true'),className:"w-full p-2 border rounded"},
+               React.createElement("option",{value:"true"},"Sí"), React.createElement("option",{value:"false"},"No")
+             )
+           )
+        ),
+        React.createElement("button",{className:"bg-green-600 text-white px-4 py-2 rounded font-bold"},"Guardar Permiso")
       ),
 
-      /* Resumen */
+      // --- RESUMEN Y ESTADÍSTICAS ---
       tab==="summary" && React.createElement("div",{className:"space-y-6"},
-        React.createElement("div",{className:"grid md:grid-cols-3 gap-4"},
-          React.createElement("div",{className:"bg-white rounded-xl shadow border p-4"},
-            React.createElement("p",{className:"text-xs text-gray-500"},"Permisos registrados"),
-            React.createElement("p",{className:"text-3xl font-extrabold"}, perms.length)
-          ),
-          React.createElement("div",{className:"bg-white rounded-xl shadow border p-4"},
-            React.createElement("p",{className:"text-xs text-gray-500"},"Horas totales acumuladas"),
-            React.createElement("p",{className:"text-3xl font-extrabold text-emerald-700"},
-              perms.reduce((a,p)=>a+calcHours(p.type,p.duration,p.timeStart,p.timeEnd),0).toFixed(1)," h")
-          ),
-          React.createElement("div",{className:"bg-white rounded-xl shadow border p-4"},
-            React.createElement("p",{className:"text-xs text-gray-500"},`Días totales ( ${JORNADA}h = 1 día )`),
-            React.createElement("p",{className:"text-3xl font-extrabold text-indigo-700"},
-              (perms.reduce((a,p)=>a+calcHours(p.type,p.duration,p.timeStart,p.timeEnd),0)/JORNADA).toFixed(2)," días")
-          )
+        // KPIs
+        React.createElement("div",{className:"grid md:grid-cols-3 gap-4 text-center"},
+          React.createElement("div",{className:"bg-white p-4 rounded shadow"}, React.createElement("p",{className:"text-xs text-gray-500 uppercase"},`Total Permisos ${workingYear}`), React.createElement("p",{className:"text-3xl font-bold"}, summary.filtered.length)),
+          React.createElement("div",{className:"bg-white p-4 rounded shadow"}, React.createElement("p",{className:"text-xs text-gray-500 uppercase"},"Horas Totales"), React.createElement("p",{className:"text-3xl font-bold text-emerald-600"}, summary.totalHours.toFixed(1))),
+          React.createElement("div",{className:"bg-white p-4 rounded shadow"}, React.createElement("p",{className:"text-xs text-gray-500 uppercase"},"Días Equiv."), React.createElement("p",{className:"text-3xl font-bold text-indigo-600"}, summary.totalDays))
         ),
-        React.createElement("div",{className:"bg-white rounded-xl shadow p-6"},
-          React.createElement("h3",{className:"font-semibold mb-2"},"Horas por rol"),
-          (R && R.BarChart && perms.length>0) ?
-            React.createElement("div",{style:{width:"100%",height:320}},
-              React.createElement(ResponsiveContainer,{width:"100%",height:"100%"},
-                React.createElement(BarChart,{data:summary.chartData,margin:{top:5,right:20,left:0,bottom:5}},
-                  React.createElement(CartesianGrid,{strokeDasharray:"3 3"}),
-                  React.createElement(XAxis,{dataKey:"rol"}),
-                  React.createElement(YAxis,null),
-                  React.createElement(Tooltip,null),
-                  React.createElement(Legend,null),
-                  React.createElement(Bar,{dataKey:"totalHours",name:"Horas",fill:"#10b981"})
+        
+        // TARJETAS GRANDES POR ROL (Reemplaza gráficos)
+        React.createElement("div",{className:"grid md:grid-cols-2 gap-6 no-print"},
+            React.createElement("div",{className:"bg-green-50 rounded-xl shadow border border-green-200 p-6"},
+                React.createElement("h3",{className:"text-green-800 font-bold text-lg mb-4 border-b border-green-200 pb-2"},"Docentes / Profesores"),
+                React.createElement("div",{className:"grid grid-cols-2 gap-4"},
+                    React.createElement("div",null, React.createElement("p",{className:"text-sm text-green-600 uppercase font-semibold"},"Cant. Permisos"), React.createElement("p",{className:"text-4xl font-extrabold text-green-900"}, summary.stats.Profesor.count)),
+                    React.createElement("div",null, React.createElement("p",{className:"text-sm text-green-600 uppercase font-semibold"},"Horas Totales"), React.createElement("p",{className:"text-4xl font-extrabold text-green-900"}, summary.stats.Profesor.hours.toFixed(1)+" h"))
                 )
-              )
+            ),
+            React.createElement("div",{className:"bg-blue-50 rounded-xl shadow border border-blue-200 p-6"},
+                React.createElement("h3",{className:"text-blue-800 font-bold text-lg mb-4 border-b border-blue-200 pb-2"},"Asistentes / Otros"),
+                React.createElement("div",{className:"grid grid-cols-2 gap-4"},
+                    React.createElement("div",null, React.createElement("p",{className:"text-sm text-blue-600 uppercase font-semibold"},"Cant. Permisos"), React.createElement("p",{className:"text-4xl font-extrabold text-blue-900"}, summary.stats.Asistente.count)),
+                    React.createElement("div",null, React.createElement("p",{className:"text-sm text-blue-600 uppercase font-semibold"},"Horas Totales"), React.createElement("p",{className:"text-4xl font-extrabold text-blue-900"}, summary.stats.Asistente.hours.toFixed(1)+" h"))
+                )
             )
-          : React.createElement("p",{className:"text-gray-500 italic"},"No hay datos para graficar.")
         ),
-        React.createElement("div",{className:"bg-white rounded-xl shadow p-6"},
-          React.createElement("h3",{className:"font-semibold mb-3"},"Listado de permisos"),
-          React.createElement("div",{className:"grid md:grid-cols-4 gap-3 mb-3"},
-            React.createElement("select",{value:fStaff,onChange:e=>setFStaff(e.target.value),className:"p-2 border rounded"},
-              React.createElement("option",{value:""},"Todos (Funcionario)"),
-              staff.map(s=>React.createElement("option",{key:s.id,value:cleanRun(s.run)},s.nombre))
-            ),
-            React.createElement("select",{value:fMonth,onChange:e=>setFMonth(e.target.value),className:"p-2 border rounded"},
-              React.createElement("option",{value:""},"Todos (Mes)"),
-              [...new Set(perms.map(p=>p.date?.slice(0,7)).filter(Boolean))].sort().map(m=>React.createElement("option",{key:m,value:m},m))
-            ),
-            React.createElement("select",{value:fYear,onChange:e=>setFYear(e.target.value),className:"p-2 border rounded"},
-              React.createElement("option",{value:""},"Todos (Año)"),
-              [...new Set(perms.map(p=>p.date?.slice(0,4)).filter(Boolean))].sort().map(y=>React.createElement("option",{key:y,value:y},y))
-            ),
-            React.createElement("button",{className:"no-print px-3 py-2 bg-blue-600 text-white rounded",onClick:()=>window.print(),disabled:perms.length===0},"Imprimir listado")
-          ),
-          React.createElement("div",{id:"report-print-area"},
-            React.createElement("table",{className:"min-w-full border"},
-              React.createElement("thead",{className:"bg-gray-100"},
-                React.createElement("tr",null,
-                  React.createElement("th",{className:"px-3 py-2 text-left text-xs font-bold"},"Funcionario"),
-                  React.createElement("th",{className:"px-3 py-2 text-left text-xs font-bold"},"Fecha"),
-                  React.createElement("th",{className:"px-3 py-2 text-left text-xs font-bold"},"Duración"),
-                  React.createElement("th",{className:"px-3 py-2 text-left text-xs font-bold"},"Motivo"),
-                  React.createElement("th",{className:"px-3 py-2 text-right text-xs font-bold"},"Horas")
-                )
-              ),
-              React.createElement("tbody",null,
-                summary.filtered.map(p =>
-                  React.createElement("tr",{key:p.id,className:"border-t"},
-                    React.createElement("td",{className:"px-3 py-2"},p.staffName),
-                    React.createElement("td",{className:"px-3 py-2"},formatDateCL(p.date)),
-                    React.createElement("td",{className:"px-3 py-2"},durLabel(p.type,p.duration,null,p.timeStart,p.timeEnd)),
-                    React.createElement("td",{className:"px-3 py-2"},p.reason==="checkup"?"Control médico":"Otro"),
-                    React.createElement("td",{className:"px-3 py-2 text-right font-semibold"},calcHours(p.type,p.duration,p.timeStart,p.timeEnd).toFixed(2))
-                  )
-                ),
-                (()=>{
-                  const h = summary.filtered.reduce((a,p)=>a+calcHours(p.type,p.duration,p.timeStart,p.timeEnd),0);
-                  return React.createElement("tr",{className:"bg-green-50 font-bold border-t"},
-                    React.createElement("td",{className:"px-3 py-2",colSpan:4},"TOTAL (horas / días)"),
-                    React.createElement("td",{className:"px-3 py-2 text-right"},h.toFixed(2)," h / ",(h/JORNADA).toFixed(2)," días")
-                  );
-                })()
-              )
-            )
-          )
-        ),
-        React.createElement("div",{className:"bg-white rounded-xl shadow p-6"},
-          React.createElement("h3",{className:"font-semibold mb-3"},"Historial (orden de emisión)"),
-          perms.length===0 ? React.createElement("p",{className:"text-gray-500"},"No hay permisos aún.") :
-          React.createElement("ul",{className:"divide-y"},
-            perms.map(p =>
-              React.createElement("li",{key:p.id,className:"py-2 flex items-center justify-between gap-3"},
-                React.createElement("div",{className:"min-w-0"},
-                  React.createElement("p",{className:"font-semibold"},p.staffName),
-                  React.createElement("p",{className:"text-xs text-gray-500"}, formatDateCL(p.date)," · ", durLabel(p.type,p.duration,null,p.timeStart,p.timeEnd))
-                ),
-                React.createElement("div",{className:"flex items-center gap-2"},
-                  React.createElement("button",{className:"no-print px-2 py-1 rounded bg-blue-600 text-white",onClick:()=>{setFolio(computeFolio(p.id)); setPrintVoucher(p);}},"Imprimir"),
-                  React.createElement("button",{className:"no-print px-2 py-1 rounded bg-orange-600 text-white",onClick:()=>setEdit(p)},"Editar"),
-                  React.createElement("button",{className:"no-print px-2 py-1 rounded bg-red-600 text-white",onClick:()=>handleDelete(p.id)},"Eliminar")
-                )
-              )
-            )
-          )
+
+        // --- TABLA REPORTE ---
+        React.createElement("div",{className:"bg-white p-6 rounded shadow"},
+           React.createElement("div",{className:"flex gap-2 mb-4 no-print"},
+              React.createElement("button",{onClick:()=>setSummaryView("detail"),className:`px-3 py-1 text-sm border rounded ${summaryView==="detail"?"bg-blue-50 border-blue-400 font-bold":"bg-gray-50"}`},"Detalle"),
+              React.createElement("button",{onClick:()=>setSummaryView("grouped"),className:`px-3 py-1 text-sm border rounded ${summaryView==="grouped"?"bg-blue-50 border-blue-400 font-bold":"bg-gray-50"}`},"Por Funcionario"),
+              React.createElement("button",{onClick:()=>window.print(),className:"ml-auto bg-gray-700 text-white px-3 py-1 rounded text-sm font-bold"},"Imprimir Reporte")
+           ),
+           summaryView==="detail" && React.createElement("div",{className:"no-print mb-4 flex gap-2"},
+             React.createElement("select",{value:fStaff,onChange:e=>setFStaff(e.target.value),className:"text-sm border p-2 rounded"},
+               React.createElement("option",{value:""},"Todos los funcionarios"), staff.map(s=>React.createElement("option",{key:s.id,value:cleanRun(s.run)},s.nombre))
+             ),
+             React.createElement("select",{value:fMonth,onChange:e=>setFMonth(e.target.value),className:"text-sm border p-2 rounded"},
+               React.createElement("option",{value:""},"Todos los meses"), summary.months.map(m=>React.createElement("option",{key:m,value:m},m))
+             )
+           ),
+           
+           React.createElement("div",{id:"report-print-area"},
+             React.createElement("h2",{className:"text-center font-bold mb-4 uppercase text-lg"}, summaryView==="detail"?`Detalle Permisos ${workingYear}`:`Consolidado Anual ${workingYear}`),
+             
+             summaryView==="detail" ? 
+               React.createElement("table",{className:"w-full text-sm border"},
+                 React.createElement("thead",{className:"bg-gray-100"},
+                   React.createElement("tr",null, ["Folio","Funcionario","Fecha","Duración","Motivo","Horas"].map(h=>React.createElement("th",{key:h,className:"border p-2"},h)))
+                 ),
+                 React.createElement("tbody",null,
+                   summary.filtered.map(p=>React.createElement("tr",{key:p.id,className:"border-t hover:bg-gray-50"},
+                      React.createElement("td",{className:"p-2 text-center text-gray-500 text-xs font-mono"},computeFolio(p)),
+                      React.createElement("td",{className:"p-2"}, 
+                         p.staffName,
+                         React.createElement("div",{className:"no-print text-xs flex gap-2 mt-1"},
+                           React.createElement("button",{className:"text-blue-600 font-bold hover:underline",onClick:()=>{setFolio(computeFolio(p));setPrintVoucher(p);}},"Ver Comprobante"),
+                           React.createElement("button",{className:"text-orange-600 hover:underline",onClick:()=>setEdit(p)},"Editar"),
+                           React.createElement("button",{className:"text-red-600 hover:underline",onClick:()=>handleDelete(p.id)},"Eliminar")
+                         )
+                      ),
+                      React.createElement("td",{className:"p-2 text-center"},formatDateCL(p.date)),
+                      React.createElement("td",{className:"p-2 text-center"},durLabel(p.type,p.duration,null,p.timeStart,p.timeEnd)),
+                      React.createElement("td",{className:"p-2 text-center"},labelReason(p.reason)),
+                      React.createElement("td",{className:"p-2 text-right font-bold"},calcHours(p.type,p.duration,p.timeStart,p.timeEnd).toFixed(2))
+                   )),
+                   React.createElement("tr",{className:"bg-gray-100 font-bold"}, React.createElement("td",{colSpan:5,className:"p-2 text-right"},"TOTAL"), React.createElement("td",{className:"p-2 text-right"},summary.totalHours.toFixed(2)))
+                 )
+               )
+             :
+               React.createElement("table",{className:"w-full text-sm border"},
+                 React.createElement("thead",{className:"bg-gray-100"},
+                   React.createElement("tr",null, ["Funcionario","Rol","Cant.","Horas","Días"].map(h=>React.createElement("th",{key:h,className:"border p-2"},h)))
+                 ),
+                 React.createElement("tbody",null,
+                   staffStats.map(s=>React.createElement("tr",{key:s.id,className:"border-t"},
+                     React.createElement("td",{className:"p-2"},React.createElement("div",{className:"font-bold"},s.nombre),React.createElement("div",{className:"text-xs text-gray-500 font-mono"},s.run)),
+                     React.createElement("td",{className:"p-2 text-center"},s.rol),
+                     React.createElement("td",{className:"p-2 text-center"},s.count||"-"),
+                     React.createElement("td",{className:"p-2 text-right font-bold text-green-700"},s.totalHours.toFixed(2)),
+                     React.createElement("td",{className:"p-2 text-right text-indigo-700"},s.totalDays.toFixed(2))
+                   ))
+                 )
+               )
+           )
         )
       ),
 
-      /* Gestión */
-      tab==="manage" && React.createElement("div",{className:"bg-white rounded-xl shadow p-6"},
-        React.createElement("h3",{className:"font-semibold mb-3"},"Nómina"),
-        staff.length===0
-          ? React.createElement("div",{className:"p-4 bg-yellow-50 border border-yellow-300 rounded"},
-              React.createElement("p",{className:"text-sm"},"No hay personal cargado.")
-            )
-          : React.createElement("table",{className:"min-w-full divide-y"},
-              React.createElement("thead",{className:"bg-gray-50"},
-                React.createElement("tr",null,
-                  React.createElement("th",{className:"px-3 py-2 text-left text-xs font-bold"},"RUN"),
-                  React.createElement("th",{className:"px-3 py-2 text-left text-xs font-bold"},"Nombre"),
-                  React.createElement("th",{className:"px-3 py-2 text-left text-xs font-bold"},"Rol"),
-                  React.createElement("th",{className:"px-3 py-2 text-left text-xs font-bold"},"Jornada")
-                )
-              ),
-              React.createElement("tbody",null,
-                staff.map(s =>
-                  React.createElement("tr",{key:s.id,className:"border-t"},
-                    React.createElement("td",{className:"px-3 py-2"},s.run),
-                    React.createElement("td",{className:"px-3 py-2"},s.nombre),
-                    React.createElement("td",{className:"px-3 py-2"},s.rol),
-                    React.createElement("td",{className:"px-3 py-2"},s.jornada)
-                  )
-                )
-              )
-            )
-      )
-    );
-
-    /* MODAL EDITAR */
-    const editModal = edit && React.createElement("div",{className:"fixed inset-0 bg-black/60 z-50 flex items-center justify-center"},
-      React.createElement("div",{className:"bg-white rounded-xl shadow p-6 w-full max-w-2xl"},
-        React.createElement("div",{className:"flex justify-between items-center mb-4"},
-          React.createElement("h3",{className:"font-bold text-lg"},"Editar permiso"),
-          React.createElement("button",{className:"no-print text-gray-500",onClick:()=>setEdit(null)},"✕")
-        ),
-        React.createElement("div",{className:"grid md:grid-cols-2 gap-3"},
-          React.createElement("div",null,
-            React.createElement("label",{className:"block text-sm mb-1"},"Funcionario"),
-            React.createElement("select",{value:edit.staffId,onChange:e=>{const s=staff.find(x=>cleanRun(x.run)===e.target.value);setEdit({...edit,staffId:e.target.value,staffName:s?.nombre||edit.staffName});},className:"w-full p-2 border rounded"},
-              staff.map(s=>React.createElement("option",{key:s.id,value:cleanRun(s.run)},`${s.nombre} (${s.rol})`))
-            )
-          ),
-          React.createElement("div",null,
-            React.createElement("label",{className:"block text-sm mb-1"},"Fecha"),
-            React.createElement("input",{type:"date",value:edit.date||todayLocal(),onChange:e=>setEdit({...edit,date:e.target.value}),className:"w-full p-2 border rounded"})
-          ),
-          React.createElement("div",null,
-            React.createElement("label",{className:"block text-sm mb-1"},"Tipo"),
-            React.createElement("select",{value:edit.type||"day",onChange:e=>setEdit({...edit,type:e.target.value}),className:"w-full p-2 border rounded"},
-              React.createElement("option",{value:"day"},"Día completo"),
-              React.createElement("option",{value:"half-day"},"Medio día"),
-              React.createElement("option",{value:"hours"},"Por horas (manual)"),
-              React.createElement("option",{value:"time-range"},"Por horas (rango)")
-            )
-          ),
-          (edit.type==="hours") && React.createElement("div",null,
-            React.createElement("label",{className:"block text-sm mb-1"},"N° Horas"),
-            React.createElement("input",{type:"number",step:"0.5",min:"0.5",max:"8",value:edit.duration||1,onChange:e=>setEdit({...edit,duration:e.target.value}),className:"w-full p-2 border rounded"})
-          ),
-          (edit.type==="time-range") && React.createElement(Fragment,null,
-            React.createElement("div",null,
-              React.createElement("label",{className:"block text-sm mb-1"},"Desde"),
-              React.createElement("input",{type:"time",value:edit.timeStart||"08:00",onChange:e=>setEdit({...edit,timeStart:e.target.value}),className:"w-full p-2 border rounded"})
-            ),
-            React.createElement("div",null,
-              React.createElement("label",{className:"block text-sm mb-1"},"Hasta"),
-              React.createElement("input",{type:"time",value:edit.timeEnd||"09:00",onChange:e=>setEdit({...edit,timeEnd:e.target.value}),className:"w-full p-2 border rounded"})
-            )
-          ),
-          React.createElement("div",null,
-            React.createElement("label",{className:"block text-sm mb-1"},"Motivo"),
-            React.createElement("select",{value:edit.reason||"checkup",onChange:e=>setEdit({...edit,reason:e.target.value}),className:"w-full p-2 border rounded"},
-              React.createElement("option",{value:"checkup"},"Control médico"),
-              React.createElement("option",{value:"other"},"Otro")
-            )
-          ),
-          React.createElement("div",null,
-            React.createElement("label",{className:"block text-sm mb-1"},"Goce de sueldo"),
-            React.createElement("select",{value:String(edit.isPaid),onChange:e=>setEdit({...edit,isPaid:e.target.value==='true'}),className:"w-full p-2 border rounded"},
-              React.createElement("option",{value:"true"},"Sí"),
-              React.createElement("option",{value:"false"},"No")
-            )
-          ),
-          React.createElement("div",{className:"md:col-span-2"},
-            React.createElement("label",{className:"block text-sm mb-1"},"Detalles"),
-            React.createElement("input",{type:"text",value:edit.details||"",onChange:e=>setEdit({...edit,details:e.target.value}),className:"w-full p-2 border rounded"})
-          )
-        ),
-        React.createElement("div",{className:"mt-4 flex justify-end gap-2"},
-          React.createElement("button",{className:"px-3 py-2 bg-gray-300 rounded",onClick:()=>setEdit(null)},"Cancelar"),
-          React.createElement("button",{className:"px-3 py-2 bg-green-600 text-white rounded",onClick:handleUpdate},"Guardar")
+      // --- NÓMINA ---
+      tab==="manage" && React.createElement("div",{className:"bg-white p-6 rounded shadow"},
+        React.createElement("h3",{className:"font-bold mb-4"},"Nómina Funcionarios"),
+        React.createElement("table",{className:"w-full text-sm border"},
+          React.createElement("thead",{className:"bg-gray-50"}, React.createElement("tr",null,["RUN","Nombre","Rol","Jornada"].map(h=>React.createElement("th",{key:h,className:"p-2 border text-left"},h)))),
+          React.createElement("tbody",null, staff.map(s=>React.createElement("tr",{key:s.id,className:"border-t"}, 
+            React.createElement("td",{className:"p-2 font-mono"},s.run), React.createElement("td",{className:"p-2"},s.nombre), React.createElement("td",{className:"p-2"},s.rol), React.createElement("td",{className:"p-2"},s.jornada)
+          )))
         )
       )
     );
 
-    const voucherUI = printVoucher && React.createElement(Voucher,{
-      permission: printVoucher,
-      staffList: staff,
-      allPerms: perms,
-      folio: folio,
-      onClose: ()=>{ setPrintVoucher(null); setFolio(""); }
-    });
+    // Modal Editar
+    const editModal = edit && React.createElement("div",{className:"fixed inset-0 bg-black/50 z-50 flex items-center justify-center"},
+       React.createElement("div",{className:"bg-white p-6 rounded shadow w-full max-w-lg"},
+         React.createElement("h3",{className:"font-bold mb-4"},"Editar Permiso"),
+         React.createElement("div",{className:"space-y-3"},
+           React.createElement("div",null, React.createElement("label",{className:"block text-xs"},"Fecha"), React.createElement("input",{type:"date",value:edit.date,onChange:e=>setEdit({...edit,date:e.target.value}),className:"w-full border p-2 rounded"})),
+           React.createElement("div",null, React.createElement("label",{className:"block text-xs"},"Tipo"), 
+             React.createElement("select",{value:edit.type,onChange:e=>setEdit({...edit,type:e.target.value}),className:"w-full border p-2 rounded"},
+               ["day","half-day","hours","time-range"].map(t=>React.createElement("option",{key:t,value:t},t))
+             )
+           ),
+           (edit.type==="hours") && React.createElement("input",{type:"number",step:"0.5",value:edit.duration||0,onChange:e=>setEdit({...edit,duration:e.target.value}),className:"w-full border p-2 rounded"}),
+           (edit.type==="time-range") && React.createElement("div",{className:"flex gap-2"},
+             React.createElement("input",{type:"time",value:edit.timeStart||"",onChange:e=>setEdit({...edit,timeStart:e.target.value}),className:"w-full border p-2 rounded"}),
+             React.createElement("input",{type:"time",value:edit.timeEnd||"",onChange:e=>setEdit({...edit,timeEnd:e.target.value}),className:"w-full border p-2 rounded"})
+           )
+         ),
+         React.createElement("div",{className:"flex justify-end gap-2 mt-4"},
+           React.createElement("button",{onClick:()=>setEdit(null),className:"px-4 py-2 bg-gray-300 rounded"},"Cancelar"),
+           React.createElement("button",{onClick:handleUpdate,className:"px-4 py-2 bg-green-600 text-white rounded"},"Guardar")
+         )
+       )
+    );
 
-    return React.createElement(Fragment,null, mainUI, editModal, voucherUI);
+    return React.createElement(Fragment,null, mainUI, editModal, printVoucher && React.createElement(Voucher,{permission:printVoucher, staffList:staff, allPerms:perms, folio:folio, onClose:()=>{setPrintVoucher(null);setFolio("")}}));
   }
 
-  // Render
-  try {
-    const root = document.getElementById('root');
-    ReactDOM.createRoot(root).render(React.createElement(App,null));
-  } catch(e) {
-    document.getElementById('root').innerHTML =
-      '<div style="padding:16px" class="text-red-700">Error crítico al montar la app: '+(e?.message||e)+'</div>';
-  }
+  const root = document.getElementById('root');
+  ReactDOM.createRoot(root).render(React.createElement(App,null));
 })();
   </script>
 </body>
