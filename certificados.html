@@ -25,8 +25,6 @@
             line-height: 1.5;
         }
         
-        /* SIN MARCA DE AGUA */
-        
         .tab-button.active { background-color: #15803d; color: white; }
         
         /* IMPRESIÓN LIMPIA */
@@ -46,7 +44,7 @@
     <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden no-print">
         
         <header class="bg-green-800 text-white p-5 text-center shadow-md flex items-center justify-center gap-4">
-            <img src="logo.jpg" alt="Logo" class="h-16 bg-white rounded-full p-1">
+            <img src="logo.jpg" alt="Logo" class="h-16 bg-white rounded-full p-1" onerror="this.style.display='none'">
             <div>
                 <h1 class="text-2xl font-bold font-sans">Generador de Certificados</h1>
                 <p class="text-green-200 text-xs font-sans">Sistema Integrado de Gestión Escolar</p>
@@ -67,13 +65,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-green-800 uppercase mb-1">1. Año Académico</label>
-                        <select id="year-select" class="w-full p-2 border rounded font-bold text-green-900 text-sm" onchange="resetSelection()">
-                            <option value="2025">2025 (Actual)</option>
-                            <option value="2026" selected>2026 (Próximo)</option>
+                        <select id="year-select" class="w-full p-2 border rounded font-bold text-green-900 text-sm bg-green-50" disabled>
+                            <option value="2026" selected>2026</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">2. Curso Base (2025)</label>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">2. Curso (Nómina 2026)</label>
                         <select id="course-select" class="w-full p-2 border rounded text-sm" onchange="loadStudentsByCourse()">
                             <option value="">Cargando...</option>
                         </select>
@@ -95,7 +92,7 @@
                     </div>
                     <div class="text-right">
                         <label class="block text-[10px] font-bold text-gray-400 uppercase">CURSO A CERTIFICAR</label>
-                        <input type="text" id="final-course-input" class="w-20 text-center font-bold border-b border-green-500 focus:outline-none text-lg text-gray-800 bg-transparent" value="">
+                        <input type="text" id="final-course-input" class="w-20 text-center font-bold border-b border-green-500 focus:outline-none text-lg text-gray-800 bg-transparent" value="" readonly>
                     </div>
                 </div>
 
@@ -115,7 +112,7 @@
                 <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200">
                     <h3 class="text-md font-bold text-gray-800 mb-3">➕ Ingresar Alumno Nuevo</h3>
                     <div class="grid grid-cols-2 gap-3 mb-3">
-                        <div><label class="text-xs font-bold text-gray-500">Curso Actual</label><input type="text" id="new-course" placeholder="Ej: 1A" class="w-full p-2 border rounded uppercase text-sm"></div>
+                        <div><label class="text-xs font-bold text-gray-500">Curso 2026</label><input type="text" id="new-course" placeholder="Ej: 1A" class="w-full p-2 border rounded uppercase text-sm"></div>
                         <div><label class="text-xs font-bold text-gray-500">RUT</label><input type="text" id="new-rut" placeholder="12345678-9" class="w-full p-2 border rounded uppercase text-sm"></div>
                     </div>
                     <div class="mb-3"><label class="text-xs font-bold text-gray-500">Nombre Completo (Apellidos Nombres)</label><input type="text" id="new-name" placeholder="PEREZ LOPEZ, JUAN" class="w-full p-2 border rounded uppercase text-sm"></div>
@@ -124,9 +121,9 @@
 
                 <div class="bg-red-50 p-5 rounded-lg border border-red-200">
                     <h3 class="text-md font-bold text-red-800 mb-1">⚠️ Carga Masiva de Nómina</h3>
-                    <p class="text-xs text-red-600 mb-3">Si los datos están incompletos, usa este botón. <strong>Borrará todos los alumnos actuales</strong> y cargará la lista oficial completa con RUTs.</p>
+                    <p class="text-xs text-red-600 mb-3">Este botón borrará la base de datos actual y cargará la <strong>Nómina Oficial 2026</strong> completa.</p>
                     <button onclick="fullDatabaseReset()" class="w-full py-2 bg-red-600 text-white font-bold rounded hover:bg-red-700 text-sm flex justify-center items-center gap-2">
-                        🗑️ BORRAR Y CARGAR NÓMINA OFICIAL (CON RUTS)
+                        🗑️ BORRAR Y CARGAR NÓMINA 2026
                     </button>
                 </div>
             </div>
@@ -155,8 +152,159 @@
         const DIRECTOR_NAME = "MIGUEL DÍAZ JARA";
         const DECREE = "Decreto Cooperador de la función Educacional del Estado N° 17.576 del 10 de septiembre de 1965";
 
-        // NÓMINA OFICIAL COMPLETA (NOMBRE + RUT) PARA CARGA MASIVA
-        const NOMINA_OFICIAL = [{"curso": "2A", "nombre": "ALBURQUENQUE DEL GRECO, EMILYA ANTONIA", "rut": "23376817-0"}, {"curso": "2A", "nombre": "ANABALÓN BELTRÁN, BENJAMÍN NICOLÁS", "rut": "22922460-3"}, {"curso": "2A", "nombre": "CONTRERAS SALGADO, HADEEY ALEJANDRA", "rut": "23355953-9"}, {"curso": "2A", "nombre": "FERRADA ALBORNOZ, AGUSTÍN ALEXIS", "rut": "23560082-K"}, {"curso": "2A", "nombre": "IBÁÑEZ GONZÁLEZ, FERNANDA MAGDALENA", "rut": "23644472-4"}, {"curso": "2A", "nombre": "LAGOS LASTRA, ALEXANDRA DANAE", "rut": "23389072-3"}, {"curso": "2A", "nombre": "LÓPEZ LÓPEZ, LUCIANO ANTONIO", "rut": "23498596-5"}, {"curso": "2A", "nombre": "MALDONADO FLORES, ANTONELLA BELÉN", "rut": "23396870-6"}, {"curso": "2A", "nombre": "MARIN MARÍN, IGNACIO ANTONIO", "rut": "22793858-7"}, {"curso": "2A", "nombre": "MONTECINO DÍAZ, VALESKA BELÉN", "rut": "23548214-2"}, {"curso": "2A", "nombre": "MUÑOZ CONTRERAS, LUIS GABRIEL", "rut": "23366642-4"}, {"curso": "2A", "nombre": "MUÑOZ LUNA, ROGER JOEL", "rut": "23622121-0"}, {"curso": "2A", "nombre": "NAVARRO VILLANUEVA, KARLA PAZ", "rut": "23329866-2"}, {"curso": "2A", "nombre": "ORELLANA ARRIAGADA, SEBASTIÁN ANDRÉS", "rut": "23388136-8"}, {"curso": "2A", "nombre": "QUEZADA NARANJO, FELIPE ALONSO", "rut": "23640108-1"}, {"curso": "2A", "nombre": "QUINTEROS VERGARA, FERNANDA FLORENCIA", "rut": "23529637-3"}, {"curso": "2A", "nombre": "RAMÍREZ VILLALOBOS, DUVAN EMILIO", "rut": "23534317-7"}, {"curso": "2A", "nombre": "SANTANDER LÓPEZ, MARÍA JOSÉ", "rut": "23679554-3"}, {"curso": "2A", "nombre": "TAPIA CASTILLA, JEANFRANCO PATRICK", "rut": "23631475-8"}, {"curso": "2A", "nombre": "URBINA CÁCERES, FRANCHESCA POULETTE", "rut": "23007625-1"}, {"curso": "2A", "nombre": "VÁSQUEZ ZALDUENDO, AMANDA ISABEL", "rut": "23584521-0"}, {"curso": "2A", "nombre": "ZABALAGA COFRÉ, DAMIÁN ANDRÉS", "rut": "23404221-1"}, {"curso": "2A", "nombre": "BAEZ DONOSO, LUKAS ALFONSO", "rut": "23461777-K"}, {"curso": "2A", "nombre": "MESA DÍAZ, GONZALO IGNACIO", "rut": "23032545-6"}, {"curso": "2A", "nombre": "ARAVENA ZÚÑIGA, NOEMÍ DE JESÚS DE LAS ESTRELLAS", "rut": "23367234-3"}, {"curso": "2A", "nombre": "ASTUDILLO CAMPOS, CRISTÓBAL ANTONIO", "rut": "22826488-1"}, {"curso": "2A", "nombre": "ASTUDILLO VÁSQUEZ, BRUNO FERNANDO LEÓN", "rut": "23251746-8"}, {"curso": "2A", "nombre": "CUMINAO VIDAL, CATALINA ANDREA", "rut": "23545428-9"}, {"curso": "2A", "nombre": "DÍAZ MALUENDA, MIGUEL ALBERTO", "rut": "23224652-9"}, {"curso": "2A", "nombre": "KILTAN GONZÁLEZ, DIDIER EZEQUIEL", "rut": "23337375-3"}, {"curso": "2A", "nombre": "LÓPEZ ACUÑA, MARCO EMILIO", "rut": "23355954-7"}, {"curso": "2A", "nombre": "LÓPEZ NOVOA, EYDAN DAMIÁN", "rut": "23153879-8"}, {"curso": "2A", "nombre": "MÉNDEZ SUAZO, FABIÁN FELIPE", "rut": "20760552-2"}, {"curso": "2A", "nombre": "MOYA REYES, MATEO ANTONIO BENJAMÍN", "rut": "23391772-9"}, {"curso": "2A", "nombre": "OSES CAMPOS, VALENTINA ABIGAIL", "rut": "23432193-5"}, {"curso": "2A", "nombre": "PALMA ORELLANA, ANTONELLA FRANCISCA", "rut": "23190411-5"}, {"curso": "2A", "nombre": "PEREIRA ORELLANA, MONSERRAT ALAMIRA", "rut": "23605196-K"}, {"curso": "2A", "nombre": "PÉREZ ORMAZÁBAL, ZADKA ALEJANDRA", "rut": "23415461-3"}, {"curso": "2A", "nombre": "ROJAS GONZÁLEZ, FLORENCIA TRINIDAD", "rut": "23290841-6"}, {"curso": "2A", "nombre": "ROJAS LEIVA, EDUARDO JAVIER", "rut": "23264828-7"}, {"curso": "2A", "nombre": "VÁSQUEZ AGUILERA, SCARLET NICOLE", "rut": "22763630-0"}, {"curso": "2A", "nombre": "YÁÑEZ GONZÁLEZ, BRAYAN DAMIÁN", "rut": "23616701-1"}, {"curso": "2A", "nombre": "VARGAS MORAGA, MARTINA SAYEN", "rut": "23555453-4"}, {"curso": "2A", "nombre": "SALAZAR SALAS, PEDRO JOSÉ", "rut": "23301500-8"}, {"curso": "2A", "nombre": "VERA BRAVO, FLORENCIA ANTONIA", "rut": "23296637-8"}, {"curso": "2A", "nombre": "PÉREZ QUEVEDO, CONSTANZA TRINIDAD", "rut": "23479449-3"}, {"curso": "2A", "nombre": "RIQUELME SANTOS, BENJAMÍN ALONSO", "rut": "23112966-9"}, {"curso": "3A", "nombre": "AHUMADA ROJAS, TRINIDAD BELÉN", "rut": "23006149-1"}, {"curso": "3A", "nombre": "ESPINOSA TORRES, FERNANDA ELENA", "rut": "23090163-5"}, {"curso": "3A", "nombre": "ESPINOZA PEÑALILLO, BRAYAN JESÚS", "rut": "23236242-1"}, {"curso": "3A", "nombre": "GONZÁLEZ SALAZAR, EMILIA CATALINA", "rut": "23121508-5"}, {"curso": "3A", "nombre": "MEDEL OJEDA, LEÓN IGNACIO", "rut": "23132468-2"}, {"curso": "3A", "nombre": "MORALES REIMÁN, ALFONSO TOMÁS", "rut": "22617512-1"}, {"curso": "3A", "nombre": "PEREIRA HORMAZÁBAL, MAXIMILIANO EDUARDO", "rut": "23054557-K"}, {"curso": "3A", "nombre": "PINTO TOBAR, JORDÁN AMARO", "rut": "23029359-7"}, {"curso": "3A", "nombre": "RECABAL YÁÑEZ, KEVIN ANDRÉS", "rut": "23086976-6"}, {"curso": "3A", "nombre": "RIQUELME CASTILLO, MATÍAS EDUARDO ANTONIO", "rut": "23284002-1"}, {"curso": "3A", "nombre": "RIVERA ABARZA, CONSTANZA VICTORIA", "rut": "23141589-0"}, {"curso": "3A", "nombre": "SANTIS CASSEUS, TEIVA SCARLETT", "rut": "23294557-5"}, {"curso": "3A", "nombre": "SOBARZO YÉVENES, KATHERINNE ALEXIA BELÉN", "rut": "22912548-6"}, {"curso": "3A", "nombre": "TOLEDO ALBORNOZ, ANTONELLA INES", "rut": "23209204-1"}, {"curso": "3A", "nombre": "VENEGAS ARRIAGADA, ANTONIA EDITH", "rut": "23115030-7"}, {"curso": "3A", "nombre": "VIELMA ZABALAGA, JOAN MANUEL", "rut": "23146366-6"}, {"curso": "3A", "nombre": "MEZA COLIMÁN, ANGEL BLAS", "rut": "23255825-3"}, {"curso": "3A", "nombre": "SAAVEDRA BRAVO, FLORENCIA ALEJANDRA", "rut": "23164383-4"}, {"curso": "3C", "nombre": "ARAYA DOMÍNGUEZ, ALEX FABIÁN", "rut": "22927087-7"}, {"curso": "3C", "nombre": "BRAVO MENARES, ALEX JOHAN", "rut": "23099931-7"}, {"curso": "3C", "nombre": "CARRASCO LEIVA, BENJAMÍN IGNACIO", "rut": "23200990-K"}, {"curso": "3C", "nombre": "CARVAJAL URRUTIA, CONSTANZA PRISILA (DANIEL)", "rut": "23086622-8"}, {"curso": "3C", "nombre": "ENCINA PIZARRO, DIEGO BENJAMÍN ALEXANDER", "rut": "23194660-8"}, {"curso": "3C", "nombre": "FAÚNDEZ NORAMBUENA, ALEJANDRO ANTONIO", "rut": "23229539-2"}, {"curso": "3C", "nombre": "JARAMILLO VILLAR, EMILIO SCOTT", "rut": "22827535-2"}, {"curso": "3C", "nombre": "LÓPEZ VILLAR, MARTÍN ALONSO", "rut": "23321258-K"}, {"curso": "3C", "nombre": "MIRANDA MUÑOZ, ALEXANDRA JAVIERA", "rut": "23285276-3"}, {"curso": "3C", "nombre": "MUÑOZ TRONCOSO, HÉCTOR ANTONIO", "rut": "22459961-7"}, {"curso": "3C", "nombre": "OLIVARES VALENZUELA, ALONSO IGNACIO", "rut": "23097156-0"}, {"curso": "3C", "nombre": "OLIVARES VALENZUELA, ANTONELLA DANAE IGNACIA", "rut": "22804086-K"}, {"curso": "3C", "nombre": "ORELLANA GARRIDO, MATÍAS LEANDRO", "rut": "22876195-8"}, {"curso": "3C", "nombre": "PUNOY MEDEL, MILLARAY ANGÉLICA", "rut": "23113000-4"}, {"curso": "3C", "nombre": "QUIÑENAO MUÑOZ, CRISTÓBAL PATRICIO", "rut": "23118361-2"}, {"curso": "3C", "nombre": "RIQUELME COLOMA, DALIA CONSTANZA", "rut": "23244598-K"}, {"curso": "3C", "nombre": "SALGADO ROJAS, VICENTE MOISÉS", "rut": "23304433-4"}, {"curso": "3C", "nombre": "SANDOVAL CERPA, VICENTE ESTEBAN", "rut": "22922664-9"}, {"curso": "3C", "nombre": "SOTO NARANJO, CHRISTOPHER", "rut": "23230279-8"}, {"curso": "3C", "nombre": "VEKARIC VERDEJO, MARTÍN", "rut": "22907717-1"}, {"curso": "4A", "nombre": "ALCÁNTAR GARCÍA, MARTINA ALEJANDRA", "rut": "22717035-2"}, {"curso": "4A", "nombre": "BAHAMONDE MUÑOZ, ARIEL LEON", "rut": "22202028-K"}, {"curso": "4A", "nombre": "CAMPOS MUÑOZ, CRISTOPHER JESÚS", "rut": "22932851-4"}, {"curso": "4A", "nombre": "CANCINO ORÓSTICA, VICENTE GASPAR", "rut": "22587064-0"}, {"curso": "4A", "nombre": "CARRASCO GONZÁLEZ, CAMILA ANDREA", "rut": "22935345-4"}, {"curso": "4A", "nombre": "COFRÉ CASTILLO, ANTONIO ANDRÉS", "rut": "22852052-7"}, {"curso": "4A", "nombre": "CONTRERAS VENEGAS, BELÉN ALEJANDRA", "rut": "22542992-8"}, {"curso": "4A", "nombre": "GALDAMES VERGARA, FELIPE ESTEBAN", "rut": "22897408-0"}, {"curso": "4A", "nombre": "GARCÍA GONZÁLEZ, SANTIAGO HUMBERTO", "rut": "22152106-4"}, {"curso": "4A", "nombre": "GONZÁLEZ AMIGO, FRANCISCA IGNACIA", "rut": "22820588-5"}, {"curso": "4A", "nombre": "GONZÁLEZ SALAZAR, JOAQUÍN ALONSO", "rut": "22565627-4"}, {"curso": "4A", "nombre": "GUTIÉRREZ GUTIÉRREZ, ANGEL MARTÍN", "rut": "22808692-4"}, {"curso": "4A", "nombre": "MARTÍNEZ LIZANA, AARON ALEJANDRO", "rut": "22970003-0"}, {"curso": "4A", "nombre": "MEZA CARRASCO, BENJAMÍN INTI", "rut": "22482618-4"}, {"curso": "4A", "nombre": "MIÑO GONZALEZ, CATALINA ANDREA", "rut": "22858572-6"}, {"curso": "4A", "nombre": "MORAGA PACHECO, RENATO IGNACIO", "rut": "22932822-0"}, {"curso": "4A", "nombre": "PÉREZ CORÓN, MANUEL IGNACIO", "rut": "22839912-4"}, {"curso": "4A", "nombre": "SAMANIEGO CORTEZ, JAKSON FERGIE", "rut": "100710921-7"}, {"curso": "4A", "nombre": "SEPÚLVEDA SALAZAR, SOFÍA ANTONIA", "rut": "22889391-9"}, {"curso": "4A", "nombre": "TAPIA ACUÑA, GABRIEL ANTONIO", "rut": "22709426-5"}, {"curso": "4A", "nombre": "VEGA VIVANCO, CRISTÓBAL ANTONIO", "rut": "23022549-4"}, {"curso": "4A", "nombre": "VERA NAVARRETE, DANIELA ELIZABETH", "rut": "22903476-6"}, {"curso": "4A", "nombre": "VILLALOBOS ARAVENA, KARINA ANGELINA", "rut": "22792420-9"}, {"curso": "4A", "nombre": "VILLALOBOS VILLALOBOS, SAMIR LUCIAN JESUS", "rut": "22733377-4"}, {"curso": "4A", "nombre": "HERNÁNDEZ SEPÚLVEDA, VICENTE ALEJANDRO", "rut": "22644932-9"}, {"curso": "4A", "nombre": "TORREALBA MOYA, FLORVELIS DE LOS ANGELES", "rut": "100793606-7"}, {"curso": "4A", "nombre": "CARO URRUTIA, CONSUELO ANTONIA", "rut": "23038091-0"}, {"curso": "4A", "nombre": "LOBOS CÁCERES, ANTONIA PAZ", "rut": "22448022-9"}, {"curso": "4C", "nombre": "ARELLANO ACUÑA, MARTÍN ANTONIO", "rut": "22558171-1"}, {"curso": "4C", "nombre": "AROS ÁVILA, DAYANA IGNACIA", "rut": "22897577-K"}, {"curso": "4C", "nombre": "CABRERA COLOMBINO, MARÍA GRACIA", "rut": "22339310-1"}, {"curso": "4C", "nombre": "FUENTES CARRASCO, YARIXA ALEJANDRA", "rut": "22865819-7"}, {"curso": "4C", "nombre": "GÓMEZ CANCINO, DANIELA ALEJANDRA", "rut": "22971225-K"}, {"curso": "4C", "nombre": "GUTIÉRREZ CARRIÓN, MILLARAY CAROLINA", "rut": "22698950-1"}, {"curso": "4C", "nombre": "HONORATO TAPIA, GLORIA JAVIERA", "rut": "22665539-5"}, {"curso": "4C", "nombre": "LARA RIVERA, BENJAMÍN ESTEBAN", "rut": "22907525-K"}, {"curso": "4C", "nombre": "PALACIOS SOTO, JOSÉ TOMÁS", "rut": "22801082-0"}, {"curso": "4C", "nombre": "PEZO SANTANDER, JOSÉ CRISTÓBAL", "rut": "22477831-7"}, {"curso": "4C", "nombre": "ROCHA ROJAS, JOSÉ PABLO WILLIAMS", "rut": "22796354-9"}, {"curso": "4C", "nombre": "ROJAS YÉVENES, FABIANA ISIDORA", "rut": "22876139-7"}, {"curso": "4C", "nombre": "SÁNCHEZ PAREJA, ANDY ANTONIO", "rut": "22916573-9"}, {"curso": "4C", "nombre": "SANTANDER LÓPEZ, SIMÓN ESTEBAN", "rut": "22845486-9"}, {"curso": "4C", "nombre": "TRONCOSO LIZAMA, SIOMARA IGNACIA", "rut": "23004590-9"}, {"curso": "4C", "nombre": "WARNKEN ROJAS, LUCIANA BERNABELA", "rut": "23009921-9"}, {"curso": "4C", "nombre": "DE LA HOZ VALENZUELA, FRANCO SEBASTIÁN", "rut": "22783846-9"}, {"curso": "4C", "nombre": "COLLAO MEDINA, ANAÍS VALENTINA", "rut": "23048274-8"}];
+        // NÓMINA OFICIAL 2026
+        const NOMINA_OFICIAL = [
+            {"curso": "1A", "rut": "23756366-2", "nombre": "ÁLVAREZ FAÚNDEZ MATEO VICENTE"},
+            {"curso": "1A", "rut": "23632281-5", "nombre": "CASTILLO ARAVENA MAITE PASCAL"},
+            {"curso": "1A", "rut": "23630802-2", "nombre": "COLLADO PUENTES SANTINO ALEXANDER"},
+            {"curso": "1A", "rut": "23466096-9", "nombre": "CONCHA TORREALBA JOAQUÍN IGNACIO"},
+            {"curso": "1A", "rut": "23797819-6", "nombre": "DÍAZ MALUENDA ESTEFANÍA ANTONIA"},
+            {"curso": "1A", "rut": "23927686-5", "nombre": "DONAIRE ROJAS MAITE EMILIA ESTER"},
+            {"curso": "1A", "rut": "23552792-8", "nombre": "ESPINOZA CACHAÑA LISBET ALEXANDRA"},
+            {"curso": "1A", "rut": "23560082-K", "nombre": "FERRADA ALBORNOZ AGUSTÍN ALEXIS"},
+            {"curso": "1A", "rut": "23329694-5", "nombre": "FUENTEMAVIDA BARROS OSCAR ANTONIO"},
+            {"curso": "1A", "rut": "23620840-0", "nombre": "JAQUE PACHECO DAMIÁN IGNACIO"},
+            {"curso": "1A", "rut": "23308540-5", "nombre": "JARAMILLO VILLAR MATT HOST"},
+            {"curso": "1A", "rut": "23355954-7", "nombre": "LÓPEZ ACUÑA MARCO EMILIO"},
+            {"curso": "1A", "rut": "23903961-8", "nombre": "LÓPEZ VILLAR FRANCO IGNACIO"},
+            {"curso": "1A", "rut": "23032545-6", "nombre": "MESA DÍAZ GONZALO IGNACIO"},
+            {"curso": "1A", "rut": "23520544-0", "nombre": "MEZA CARRASCO CRISTIAN ALFONSO"},
+            {"curso": "1A", "rut": "23668420-2", "nombre": "MORALES GARRIDO NICOLÁS ANTONIO"},
+            {"curso": "1A", "rut": "23830831-3", "nombre": "ORTEGA DA SILVA EMILIA CATALINA SOPHIA"},
+            {"curso": "1A", "rut": "23653817-6", "nombre": "PEREIRA TAPIA KEVIN RUBÉN"},
+            {"curso": "1A", "rut": "23679011-8", "nombre": "RAMÍREZ SEPÚLVEDA LUIS JUSTIN JESÚS"},
+            {"curso": "1A", "rut": "23488123-K", "nombre": "RAMÍREZ VALDÉS MARTINA POLETTE"},
+            {"curso": "1A", "rut": "23493746-4", "nombre": "RECABAL YÁÑEZ TOMÁS IGNACIO"},
+            {"curso": "1A", "rut": "22988470-0", "nombre": "RODRÍGUEZ SEPÚLVEDA SIMONEY ISAMAR"},
+            {"curso": "1A", "rut": "23710287-8", "nombre": "ROJAS ÓRDENES TRACY MAIDEN"},
+            {"curso": "1A", "rut": "23577058-K", "nombre": "SÁNCHEZ MUNIZAGA ALONDRA ANAÍS"},
+            {"curso": "1A", "rut": "100685011-8", "nombre": "SOLIZ OLGUIN BRAYAN"},
+            {"curso": "1A", "rut": "23937949-4", "nombre": "VALENZUELA MUÑOZ MAGDALENA BELÉN"},
+            {"curso": "2A", "rut": "23376817-0", "nombre": "ALBURQUENQUE DEL GRECCO EMILYA ANTONIA"},
+            {"curso": "2A", "rut": "22922460-3", "nombre": "ANABALÓN BELTRÁN BENJAMÍN NICOLÁS"},
+            {"curso": "2A", "rut": "23367234-3", "nombre": "ARAVENA ZÚÑIGA NOEMÍ JESÚS DE LAS ESTRELLAS"},
+            {"curso": "2A", "rut": "22927087-7", "nombre": "ARAYA DOMÍNGUEZ ALEX FABIÁN"},
+            {"curso": "2A", "rut": "22826488-1", "nombre": "ASTUDILLO CAMPOS CRISTÓBAL ANTONIO"},
+            {"curso": "2A", "rut": "23251746-8", "nombre": "ASTUDILLO VÁSQUEZ BRUNO FERNANDO LEÓN"},
+            {"curso": "2A", "rut": "23461777-K", "nombre": "BAEZ DONOSO LUKAS ALFONSO"},
+            {"curso": "2A", "rut": "23282399-2", "nombre": "CARO BUSTOS KRISCHNA ESTEFANIA"},
+            {"curso": "2A", "rut": "23355953-9", "nombre": "CONTRERAS SALGADO HADEEY ALEJANDRA"},
+            {"curso": "2A", "rut": "23545428-9", "nombre": "CUMINAO VIDAL CATALINA ANDREA"},
+            {"curso": "2A", "rut": "23224652-9", "nombre": "DÍAZ MALUENDA MIGUEL ALBERTO"},
+            {"curso": "2A", "rut": "23644472-4", "nombre": "IBÁÑEZ GONZÁLEZ FERNANDA MAGDALENA"},
+            {"curso": "2A", "rut": "23337375-3", "nombre": "KILTAN GONZÁLEZ DIDIER EZEQUIEL"},
+            {"curso": "2A", "rut": "23389072-3", "nombre": "LAGOS LASTRA ALEXANDRA DANAE"},
+            {"curso": "2A", "rut": "23498596-5", "nombre": "LÓPEZ LÓPEZ LUCIANO ANTONIO"},
+            {"curso": "2A", "rut": "23153879-8", "nombre": "LÓPEZ NOVOA EYDAN DAMIÁN"},
+            {"curso": "2A", "rut": "23396870-6", "nombre": "MALDONADO FLORES ANTONELLA BELÉN"},
+            {"curso": "2A", "rut": "23548214-2", "nombre": "MONTECINO DÍAZ VALESKA BELÉN"},
+            {"curso": "2A", "rut": "23391772-9", "nombre": "MOYA REYES MATEO ANTONIO BENJAMÍN"},
+            {"curso": "2A", "rut": "23366642-4", "nombre": "MUÑOZ CONTRERAS LUIS GABRIEL"},
+            {"curso": "2A", "rut": "23622121-0", "nombre": "MUÑOZ LUNA ROGER JOEL"},
+            {"curso": "2A", "rut": "23329866-2", "nombre": "NAVARRO VILLANUEVA KARLA PAZ"},
+            {"curso": "2A", "rut": "23388136-8", "nombre": "ORELLANA ARRIAGADA SEBASTIÁN ANDRÉS"},
+            {"curso": "2A", "rut": "23432193-5", "nombre": "OSES CAMPOS VALENTINA ABIGAIL"},
+            {"curso": "2A", "rut": "23190411-5", "nombre": "PALMA ORELLANA ANTONELLA FRANCISCA"},
+            {"curso": "2A", "rut": "23605196-K", "nombre": "PEREIRA ORELLANA MONSERRAT ALAMIRA"},
+            {"curso": "2A", "rut": "23415461-3", "nombre": "PÉREZ ORMAZÁBAL ZADKA ALEJANDRA"},
+            {"curso": "2A", "rut": "23479449-3", "nombre": "PÉREZ QUEVEDO CONSTANZA TRINIDAD"},
+            {"curso": "2A", "rut": "23640108-1", "nombre": "QUEZADA NARANJO FELIPE ALONSO"},
+            {"curso": "2A", "rut": "23534317-7", "nombre": "RAMÍREZ VILLALOBOS DUVAN EMILIO"},
+            {"curso": "2A", "rut": "23112966-9", "nombre": "RIQUELME SANTOS BENJAMÍN ALONSO"},
+            {"curso": "2A", "rut": "23290841-6", "nombre": "ROJAS GONZÁLEZ FLORENCIA TRINIDAD"},
+            {"curso": "2A", "rut": "23264828-7", "nombre": "ROJAS LEIVA EDUARDO JAVIER"},
+            {"curso": "2A", "rut": "23301500-8", "nombre": "SALAZAR SALAS PEDRO JOSÉ"},
+            {"curso": "2A", "rut": "23679554-3", "nombre": "SANTANDER LÓPEZ MARÍA JOSÉ"},
+            {"curso": "2A", "rut": "23631475-8", "nombre": "TAPIA CASTILLA JEANFRANCO PATRICK"},
+            {"curso": "2A", "rut": "23007625-1", "nombre": "URBINA CÁCERES FRANCHESCA POULETTE"},
+            {"curso": "2A", "rut": "23555453-4", "nombre": "VARGAS MORAGA MARTINA SAYEN"},
+            {"curso": "2A", "rut": "22763630-0", "nombre": "VÁSQUEZ AGUILERA SCARLET NICOLE"},
+            {"curso": "2A", "rut": "23584521-0", "nombre": "VÁSQUEZ ZALDUENDO AMANDA ISABEL"},
+            {"curso": "2A", "rut": "23296637-8", "nombre": "VERA BRAVO FLORENCIA ANTONIA"},
+            {"curso": "2A", "rut": "23616701-1", "nombre": "YÁÑEZ GONZÁLEZ BRAYAN DAMIÁN"},
+            {"curso": "2A", "rut": "23404221-1", "nombre": "ZABALAGA COFRÉ DAMIÁN ANDRÉS"},
+            {"curso": "3A", "rut": "23006149-1", "nombre": "AHUMADA ROJAS TRINIDAD BELÉN"},
+            {"curso": "3A", "rut": "22774362-K", "nombre": "CORNEJO CASTILLO OSCAR GABRIEL"},
+            {"curso": "3A", "rut": "23236242-1", "nombre": "ESPINOZA PEÑALILLO BRAYAN JESÚS"},
+            {"curso": "3A", "rut": "23229539-2", "nombre": "FAÚNDEZ NORAMBUENA ALEJANDRO ANTONIO"},
+            {"curso": "3A", "rut": "22827535-2", "nombre": "JARAMILLO VILLAR EMILIO SCOTT"},
+            {"curso": "3A", "rut": "23321258-K", "nombre": "LÓPEZ VILLAR MARTÍN ALONSO"},
+            {"curso": "3A", "rut": "23255825-3", "nombre": "MEZA COLIMÁN ANGEL BLAS"},
+            {"curso": "3A", "rut": "23285276-3", "nombre": "MIRANDA MUÑOZ ALEXANDRA JAVIERA"},
+            {"curso": "3A", "rut": "22932822-0", "nombre": "MORAGA PACHECO RENATO IGNACIO"},
+            {"curso": "3A", "rut": "22617512-1", "nombre": "MORALES REIMÁN ALFONSO TOMÁS"},
+            {"curso": "3A", "rut": "22876195-8", "nombre": "ORELLANA GARRIDO MATÍAS LEANDRO"},
+            {"curso": "3A", "rut": "23054557-K", "nombre": "PEREIRA HORMAZÁBAL MAXIMILIANO EDUARDO"},
+            {"curso": "3A", "rut": "23029359-7", "nombre": "PINTO TOBAR JORDÁN AMARO"},
+            {"curso": "3A", "rut": "23086976-6", "nombre": "RECABAL YÁÑEZ KEVIN ANDRÉS"},
+            {"curso": "3A", "rut": "22922664-9", "nombre": "SANDOVAL CERPA VICENTE ESTEBAN"},
+            {"curso": "3A", "rut": "23230279-8", "nombre": "SOTO NARANJO CHRISTOPHER"},
+            {"curso": "3A", "rut": "22907717-1", "nombre": "VEKARIC VERDEJO MARTÍN"},
+            {"curso": "3A", "rut": "23146366-6", "nombre": "VIELMA ZABALAGA JOAN MANUEL"},
+            {"curso": "3C", "rut": "23099931-7", "nombre": "BRAVO MENARES ALEX JOHAN"},
+            {"curso": "3C", "rut": "23200990-K", "nombre": "CARRASCO LEIVA BENJAMÍN IGNACIO"},
+            {"curso": "3C", "rut": "23194660-8", "nombre": "ENCINA PIZARRO DIEGO BENJAMÍN ALEXANDER"},
+            {"curso": "3C", "rut": "23090163-5", "nombre": "ESPINOSA TORRES FERNANDA ELENA"},
+            {"curso": "3C", "rut": "23121508-5", "nombre": "GONZÁLEZ SALAZAR EMILIA CATALINA"},
+            {"curso": "3C", "rut": "23132468-2", "nombre": "MEDEL OJEDA LEÓN IGNACIO"},
+            {"curso": "3C", "rut": "23097156-0", "nombre": "OLIVARES VALENZUELA ALONSO IGNACIO"},
+            {"curso": "3C", "rut": "22804086-K", "nombre": "OLIVARES VALENZUELA ANTONELLA DANAE IGNACIA"},
+            {"curso": "3C", "rut": "23113000-4", "nombre": "PUNOY MEDEL MILLARAY ANGÉLICA"},
+            {"curso": "3C", "rut": "23118361-2", "nombre": "QUIÑENAO MUÑOZ CRISTÓBAL PATRICIO"},
+            {"curso": "3C", "rut": "23284002-1", "nombre": "RIQUELME CASTILLO MATÍAS EDUARDO ANTONIO"},
+            {"curso": "3C", "rut": "23244598-K", "nombre": "RIQUELME COLOMA DALIA CONSTANZA"},
+            {"curso": "3C", "rut": "23141589-0", "nombre": "RIVERA ABARZA CONSTANZA VICTORIA"},
+            {"curso": "3C", "rut": "23164383-4", "nombre": "SAAVEDRA BRAVO FLORENCIA ALEJANDRA"},
+            {"curso": "3C", "rut": "23304433-4", "nombre": "SALGADO ROJAS VICENTE MOISÉS"},
+            {"curso": "3C", "rut": "23294557-5", "nombre": "SANTIS CASSEUS TEIVA SCARLETT"},
+            {"curso": "3C", "rut": "22912548-6", "nombre": "SOBARZO YÉVENES KATHERINNE ALEXIA BELÉN"},
+            {"curso": "3C", "rut": "23209204-1", "nombre": "TOLEDO ALBORNOZ ANTONELLA INES"},
+            {"curso": "3C", "rut": "23115030-7", "nombre": "VENEGAS ARRIAGADA ANTONIA EDITH"},
+            {"curso": "4A", "rut": "22717035-2", "nombre": "ALCÁNTAR GARCÍA MARTINA ALEJANDRA"},
+            {"curso": "4A", "rut": "22202028-K", "nombre": "BAHAMONDE MUÑOZ ARIEL LEON"},
+            {"curso": "4A", "rut": "22932851-4", "nombre": "CAMPOS MUÑOZ CRISTOPHER JESÚS"},
+            {"curso": "4A", "rut": "22587064-0", "nombre": "CANCINO ORÓSTICA VICENTE GASPAR"},
+            {"curso": "4A", "rut": "23038091-0", "nombre": "CARO URRUTIA CONSUELO ANTONIA"},
+            {"curso": "4A", "rut": "22935345-4", "nombre": "CARRASCO GONZÁLEZ CAMILA ANDREA"},
+            {"curso": "4A", "rut": "22852052-7", "nombre": "COFRÉ CASTILLO ANTONIO ANDRÉS"},
+            {"curso": "4A", "rut": "22897408-0", "nombre": "GALDAMES VERGARA FELIPE ESTEBAN"},
+            {"curso": "4A", "rut": "22152106-4", "nombre": "GARCÍA GONZÁLEZ SANTIAGO HUMBERTO"},
+            {"curso": "4A", "rut": "22820588-5", "nombre": "GONZÁLEZ AMIGO FRANCISCA IGNACIA"},
+            {"curso": "4A", "rut": "22565627-4", "nombre": "GONZÁLEZ SALAZAR JOAQUÍN ALONSO"},
+            {"curso": "4A", "rut": "22808692-4", "nombre": "GUTIÉRREZ GUTIÉRREZ ANGEL MARTÍN"},
+            {"curso": "4A", "rut": "22644932-9", "nombre": "HERNÁNDEZ SEPÚLVEDA VICENTE ALEJANDRO"},
+            {"curso": "4A", "rut": "22448022-9", "nombre": "LOBOS CÁCERES ANTONIA PAZ"},
+            {"curso": "4A", "rut": "22970003-0", "nombre": "MARTÍNEZ LIZANA AARON ALEJANDRO"},
+            {"curso": "4A", "rut": "22482618-4", "nombre": "MEZA CARRASCO BENJAMÍN INTI"},
+            {"curso": "4A", "rut": "22858572-6", "nombre": "MIÑO GONZALEZ CATALINA ANDREA"},
+            {"curso": "4A", "rut": "22839912-4", "nombre": "PÉREZ CORÓN MANUEL IGNACIO"},
+            {"curso": "4A", "rut": "100710921-7", "nombre": "SAMANIEGO CORTEZ JAKSON FERGIE"},
+            {"curso": "4A", "rut": "22889391-9", "nombre": "SEPÚLVEDA SALAZAR SOFÍA ANTONIA"},
+            {"curso": "4A", "rut": "22709426-5", "nombre": "TAPIA ACUÑA GABRIEL ANTONIO"},
+            {"curso": "4A", "rut": "100793606-7", "nombre": "TORREALBA MOYA FLORVELIS DE LOS ANGELES"},
+            {"curso": "4A", "rut": "23022549-4", "nombre": "VEGA VIVANCO CRISTÓBAL ANTONIO"},
+            {"curso": "4A", "rut": "22903476-6", "nombre": "VERA NAVARRETE DANIELA ELIZABETH"},
+            {"curso": "4A", "rut": "22792420-9", "nombre": "VILLALOBOS ARAVENA KARINA ANGELINA"},
+            {"curso": "4A", "rut": "22733377-4", "nombre": "VILLALOBOS VILLALOBOS SAMIR LUCIAN JESÚS"},
+            {"curso": "4C", "rut": "22558171-1", "nombre": "ARELLANO ACUÑA MARTÍN ANTONIO"},
+            {"curso": "4C", "rut": "22897577-K", "nombre": "AROS ÁVILA DAYANA IGNACIA"},
+            {"curso": "4C", "rut": "22339310-1", "nombre": "CABRERA COLOMBINO MARÍA GRACIA"},
+            {"curso": "4C", "rut": "23048274-8", "nombre": "COLLAO MEDINA ANAÍS VALENTINA"},
+            {"curso": "4C", "rut": "22783846-9", "nombre": "DE LA HOZ VALENZUELA FRANCO SEBASTIÁN"},
+            {"curso": "4C", "rut": "22865819-7", "nombre": "FUENTES CARRASCO YARIXA ALEJANDRA"},
+            {"curso": "4C", "rut": "22971225-K", "nombre": "GÓMEZ CANCINO DANIELA ALEJANDRA"},
+            {"curso": "4C", "rut": "22698950-1", "nombre": "GUTIÉRREZ CARRIÓN MILLARAY CAROLINA"},
+            {"curso": "4C", "rut": "22665539-5", "nombre": "HONORATO TAPIA GLORIA JAVIERA"},
+            {"curso": "4C", "rut": "22907525-K", "nombre": "LARA RIVERA BENJAMÍN ESTEBAN"},
+            {"curso": "4C", "rut": "22801082-0", "nombre": "PALACIOS SOTO JOSÉ TOMÁS"},
+            {"curso": "4C", "rut": "22477831-7", "nombre": "PEZO SANTANDER JOSÉ CRISTÓBAL"},
+            {"curso": "4C", "rut": "22796354-9", "nombre": "ROCHA ROJAS JOSÉ PABLO WILLIAMS"},
+            {"curso": "4C", "rut": "22876139-7", "nombre": "ROJAS YÉVENES FABIANA ISIDORA"},
+            {"curso": "4C", "rut": "22916573-9", "nombre": "SÁNCHEZ PAREJA ANDY ANTONIO"},
+            {"curso": "4C", "rut": "22845486-9", "nombre": "SANTANDER LÓPEZ SIMÓN ESTEBAN"},
+            {"curso": "4C", "rut": "23004590-9", "nombre": "TRONCOSO LIZAMA SIOMARA IGNACIA"},
+            {"curso": "4C", "rut": "23009921-9", "nombre": "WARNKEN ROJAS LUCIANA BERNABELA"}
+        ];
 
         let db, ALL_STUDENTS = [], CURRENT_STUDENT = null;
 
@@ -210,38 +358,22 @@
             document.getElementById('display-rut').innerText = rut;
             document.getElementById('display-rut').className = rut === "SIN DATOS" ? "font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded" : "font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded";
             
-            const year = document.getElementById('year-select').value;
-            let finalCourse = CURRENT_STUDENT.curso;
-            if (year === "2026") finalCourse = getPromotedCourse(finalCourse);
-            
-            document.getElementById('final-course-input').value = finalCourse || "Egresado";
+            // LÓGICA SIMPLIFICADA PARA 2026: No hay promoción, se usa el curso de la nómina
+            document.getElementById('final-course-input').value = CURRENT_STUDENT.curso;
             document.getElementById('action-zone').classList.remove('hidden');
         };
 
-        function getPromotedCourse(current) {
-            const match = current.match(/^(\d+)(.*)$/);
-            if (!match) return current;
-            let num = parseInt(match[1]);
-            let letter = match[2];
-            if (num >= 4) return "Egresado"; 
-            let nextNum = num + 1;
-            let nextCourse = nextNum + letter;
-            if(nextCourse === "3B") nextCourse = "3C"; 
-            return nextCourse;
-        }
-
         window.generateCertificate = function(type) {
             if (!CURRENT_STUDENT) return;
-            const year = document.getElementById('year-select').value;
+            // Año fijo en 2026
+            const year = "2026"; 
             const finalCourse = document.getElementById('final-course-input').value;
             const dateText = getFormattedDate();
             
             let title = type === 'regular' ? "CERTIFICADO DE ALUMNO REGULAR" : "CERTIFICADO DE MATRÍCULA";
             let body = type === 'regular' 
                 ? `es alumno regular y se encuentra matriculado en el curso <strong>${finalCourse}</strong>, año escolar <strong>${year}</strong>, de este establecimiento educacional.`
-                : (year === "2026" 
-                    ? `ha sido aceptado y matriculado en el curso <strong>${finalCourse}</strong> para el año escolar <strong>${year}</strong> en este establecimiento.`
-                    : `se encuentra matriculado en el curso <strong>${finalCourse}</strong>, año <strong>${year}</strong>.`);
+                : `ha sido aceptado y matriculado en el curso <strong>${finalCourse}</strong> para el año escolar <strong>${year}</strong> en este establecimiento.`;
 
             const html = `
                 <div class="certificate-page">
@@ -250,7 +382,7 @@
                             <p class="font-bold uppercase">${SCHOOL_NAME}</p>
                             <p>${LOCATION}</p>
                         </div>
-                        <img src="logo.jpg" alt="Logo" style="height: 70px;">
+                        <img src="logo.jpg" alt="Logo" style="height: 70px;" onerror="this.style.display='none'">
                     </div>
 
                     <div class="text-center mb-8 mt-4">
@@ -324,7 +456,7 @@
                 if (insertCount > 0) await batchInsert.commit();
 
                 await loadStudentsFromDB();
-                Swal.fire('¡Base de Datos Restaurada!', 'Se han cargado 131 alumnos con sus RUTs correctamente.', 'success');
+                Swal.fire('¡Base de Datos Restaurada!', 'Se han cargado ' + NOMINA_OFICIAL.length + ' alumnos con sus RUTs correctamente.', 'success');
             } catch(e) {
                 console.error(e);
                 Swal.fire('Error', 'Hubo un problema durante la restauración.', 'error');

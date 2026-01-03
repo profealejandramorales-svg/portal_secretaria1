@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emisión de Certificados 2026</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { 
+            background-color: #f0f2f5; 
+            font-family: 'Open Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Panel Lateral */
+        .sidebar {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e9ecef;
+        }
+
+        /* VISTA DE DOCUMENTO (Hoja Carta) */
+        .paper-sheet {
+            background: white;
+            width: 216mm;
+            min-height: 279mm;
+            padding: 2.5cm 3cm; /* Márgenes óptimos */
+            margin: 0 auto;
+            box-shadow: 0 0 25px rgba(0,0,0,0.15);
+            font-family: 'Merriweather', serif;
+            color: #222;
+            position: relative;
+            font-size: 12pt;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .doc-header { 
+            text-align: center; margin-bottom: 2rem; 
+            border-bottom: 3px double #333; padding-bottom: 1.5rem; 
+        }
+        .doc-title { 
+            font-weight: 900; text-transform: uppercase; font-size: 16pt; 
+            margin: 2rem 0 3rem 0; text-align: center; 
+            text-decoration: underline; text-underline-offset: 6px; 
+        }
+        .doc-body { text-align: justify; flex-grow: 1; }
+        .doc-body p { margin-bottom: 1.5rem; }
+        .doc-footer { text-align: center; margin-top: 4rem; page-break-inside: avoid; }
+        .signature-line { width: 300px; border-top: 1px solid #000; margin: 0 auto 10px auto; }
+        
+        /* Créditos al pie de la APP (Pantalla) */
+        .app-footer {
+            margin-top: auto;
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.85rem;
+            border-top: 1px solid #e9ecef;
+            background-color: #fff;
+        }
+
+        /* ESTILOS DE IMPRESIÓN */
+        @media print {
+            @page { size: Letter; margin: 1.5cm; }
+            body { background: white; margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
+            .no-print { display: none !important; }
+            .paper-sheet { box-shadow: none; margin: 0; width: 100% !important; padding: 0; }
+            .container, .row, .col-lg-8 { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+            .app-footer { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast-box" class="position-fixed top-0 end-0 p-3" style="z-index: 1100"></div>
+
+    <div class="container py-4">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+            <div class="d-flex align-items-center gap-3">
+                <a href="index.html" class="btn btn-secondary shadow-sm"><i class="fa-solid fa-arrow-left me-2"></i>Volver</a>
+                <div>
+                    <h2 class="mb-0 fw-bold text-dark">Emisión de Documentos</h2>
+                    <small class="text-muted">Secretaría Académica</small>
+                </div>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                 <span id="firebase-status" class="badge bg-secondary border">Offline</span>
+                 <button onclick="window.print()" class="btn btn-primary shadow-sm fw-bold">
+                    <i class="fa-solid fa-print me-2"></i> Imprimir
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            
+            <div class="col-lg-4 mb-4 no-print">
+                <div class="sidebar sticky-top" style="top: 20px;">
+                    
+                    <div class="mb-4 p-3 bg-white border border-primary rounded shadow-sm">
+                        <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-database me-2"></i>Base de Datos 2026</h6>
+                        <label class="btn btn-outline-primary btn-sm w-100 mb-2 cursor-pointer">
+                            <i class="fa-solid fa-upload me-2"></i> Cargar "nominA2026.csv"
+                            <input type="file" id="csv-file" accept=".csv" hidden>
+                        </label>
+                        <small class="text-muted d-block text-center" id="db-status">
+                            <i class="fa-solid fa-circle-info"></i> Esperando archivo...
+                        </small>
+                    </div>
+
+                    <h5 class="fw-bold mb-3 border-bottom pb-2">Datos del Certificado</h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">TIPO DOCUMENTO</label>
+                        <select id="doc-type" class="form-select border-secondary bg-light">
+                            <option value="regular">Certificado Alumno Regular</option>
+                            <option value="matricula">Certificado de Matrícula</option>
+                            <option value="conducta">Informe de Conducta</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">CURSO</label>
+                        <select id="course-select" class="form-select">
+                            <option value="">(Cargue la nómina)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label class="form-label small fw-bold text-secondary mb-0">ESTUDIANTE</label>
+                            <button class="btn btn-success btn-sm py-0 px-2 shadow-sm" style="font-size: 0.7rem;" onclick="addManualStudent()">
+                                <i class="fa-solid fa-plus"></i> Manual
+                            </button>
+                        </div>
+                        <select id="student-select" class="form-select mt-1" disabled>
+                            <option value="">Esperando curso...</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">RUT</label>
+                        <input type="text" id="student-rut" class="form-control fw-bold bg-light" readonly placeholder="---">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">FINES / MOTIVO</label>
+                        <textarea id="doc-purpose" class="form-control" rows="2">los fines que estime convenientes</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button id="btn-generate" class="btn btn-success fw-bold py-2 shadow-sm">
+                            <i class="fa-solid fa-cloud-arrow-up me-2"></i> Generar y Guardar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="paper-sheet" id="document-preview">
+                    
+                    <div class="doc-header">
+                        <div class="row align-items-center">
+                            <div class="col-2 text-start">
+                                <img src="logo.jpg" style="height: 80px; width: auto;" onerror="this.style.display='none'">
+                            </div>
+                            <div class="col-10 text-end">
+                                <h4 class="fw-bold mb-1" style="font-family: 'Open Sans', sans-serif;">ESCUELA AGRÍCOLA SAGRADOS CORAZONES</h4>
+                                <p class="mb-0 text-muted small">RBD: 3478-9 &bull; Reconocimiento Oficial del Estado</p>
+                                <p class="mb-0 text-muted small">Loncomilla S/N, Villa Alegre &bull; Región del Maule</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <h1 class="doc-title" id="preview-title">CERTIFICADO DE ALUMNO REGULAR</h1>
+                    </div>
+
+                    <div class="doc-body" id="preview-body">
+                        <p class="text-center text-muted fst-italic mt-5">
+                            <i class="fa-solid fa-arrow-left me-2"></i>
+                            Complete los datos en el panel izquierdo y presione "Generar".
+                        </p>
+                    </div>
+
+                    <div class="mt-5 text-end fst-italic">
+                        <p>Villa Alegre, <span id="print-date">---</span>.</p>
+                    </div>
+
+                    <div class="doc-footer">
+                        <div style="height: 80px;"></div>
+                        <div class="signature-line"></div>
+                        <p class="fw-bold mb-0 fs-5">MIGUEL DÍAZ JARA</p>
+                        <p class="fw-bold mb-0">DIRECTOR</p>
+                        <p class="small text-muted mb-0">Escuela Agrícola Sagrados Corazones</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="app-footer no-print">
+        <p class="mb-0">Sistema de Gestión Escolar 2026 &bull; Escuela Agrícola Sagrados Corazones</p>
+        <p class="mb-0 fw-bold text-primary">Desarrollado por ProfeAle &copy; 2025</p>
+    </footer>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // Configuración Firebase
+        const firebaseConfig = { apiKey: "AIzaSyBnSMVCH0yyYUWk5z54kTIPTrWkyoeWs-I", authDomain: "suspenciones-40d0c.firebaseapp.com", projectId: "suspenciones-40d0c", storageBucket: "suspenciones-40d0c.firebasestorage.app", messagingSenderId: "853418739042", appId: "1:853418739042:web:d051befb99cd2acdd4583b" };
+        
+        let db, auth;
+        let schoolData = {}; 
+
+        // Mapeo Códigos CSV -> Nombre Real
+        const courseMapping = {
+            "1A": "Primero Medio A", "1B": "Primero Medio B",
+            "2A": "Segundo Medio A", "2B": "Segundo Medio B",
+            "3A": "Tercero Medio A", "3B": "Tercero Medio B", "3C": "Tercero Medio C",
+            "4A": "Cuarto Medio A", "4B": "Cuarto Medio B", "4C": "Cuarto Medio C"
+        };
+
+        // INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', async () => {
+            updateDate();
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                await signInAnonymously(auth);
+                
+                const statusEl = document.getElementById('firebase-status');
+                if(statusEl) {
+                    statusEl.innerHTML = '<i class="fa-solid fa-circle text-success me-1"></i> Online';
+                    statusEl.classList.remove('bg-secondary');
+                    statusEl.classList.add('bg-white', 'text-success');
+                }
+            } catch (e) {
+                console.error("Error Firebase", e);
+            }
+        });
+
+        // 1. CARGA ROBUSTA DE CSV (Solución ISO-8859-1 para Ñ y Tildes)
+        document.getElementById('csv-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            
+            // ¡ESTA ES LA CLAVE PARA REPARAR LOS CARACTERES!
+            // Leemos el archivo usando la codificación de Windows/Excel (ANSI)
+            reader.readAsText(file, 'ISO-8859-1');
+
+            reader.onload = function(evt) {
+                processCSV(evt.target.result);
+            };
+            
+            reader.onerror = function() {
+                alert("Error de lectura del archivo.");
+            };
+        });
+
+        function processCSV(csvText) {
+            schoolData = {};
+            // Separar por saltos de línea (compatible con Windows \r\n y Mac \n)
+            const lines = csvText.split(/\r\n|\n/); 
+            let count = 0;
+
+            lines.forEach((line) => {
+                const cleanLine = line.trim();
+                if (!cleanLine) return;
+
+                const parts = cleanLine.split(';'); // Separador punto y coma
+                
+                if (parts.length >= 3) {
+                    let code = parts[0].trim();
+                    const rut = parts[1].trim();
+                    const name = parts[2].trim();
+
+                    // Ignorar encabezados si el archivo los trae
+                    if (rut.toUpperCase().includes("RUN") || name.toUpperCase().includes("NOMBRE")) return;
+
+                    // Convertir código corto a nombre completo
+                    const cursoName = courseMapping[code] || code;
+
+                    if (!schoolData[cursoName]) schoolData[cursoName] = [];
+                    schoolData[cursoName].push({ name, rut });
+                    count++;
+                }
+            });
+
+            const statusLabel = document.getElementById('db-status');
+            if (count > 0) {
+                statusLabel.innerHTML = `✅ <b>${count}</b> alumnos cargados correctamente.`;
+                statusLabel.className = 'text-success small fw-bold d-block text-center';
+                refreshCourses();
+                alert(`¡Éxito! Se cargaron ${count} alumnos. Los caracteres (Ñ, Tildes) deberían verse bien.`);
+            } else {
+                statusLabel.innerHTML = `❌ Error de formato.`;
+                statusLabel.className = 'text-danger small fw-bold d-block text-center';
+                alert("No se encontraron datos válidos. Verifique que el CSV usa punto y coma (;).");
+            }
+        }
+
+        function refreshCourses() {
+            const select = document.getElementById('course-select');
+            select.innerHTML = '<option value="">Seleccione...</option>';
+            
+            const courses = Object.keys(schoolData).sort();
+            courses.forEach(course => {
+                let opt = document.createElement('option');
+                opt.value = course; opt.text = course;
+                select.appendChild(opt);
+            });
+        }
+
+        // EVENTOS DE SELECCIÓN
+        document.getElementById('course-select').addEventListener('change', (e) => {
+            const course = e.target.value;
+            const select = document.getElementById('student-select');
+            select.innerHTML = '<option value="">Seleccione...</option>';
+            select.disabled = !course;
+            document.getElementById('student-rut').value = "";
+
+            if (course && schoolData[course]) {
+                schoolData[course].sort((a,b) => a.name.localeCompare(b.name));
+                schoolData[course].forEach((st, idx) => {
+                    let opt = document.createElement('option');
+                    opt.value = idx; opt.text = st.name;
+                    select.appendChild(opt);
+                });
+            }
+        });
+
+        document.getElementById('student-select').addEventListener('change', (e) => {
+            const course = document.getElementById('course-select').value;
+            const idx = e.target.value;
+            if (course && idx !== "") {
+                document.getElementById('student-rut').value = schoolData[course][idx].rut;
+            } else {
+                document.getElementById('student-rut').value = "";
+            }
+        });
+
+        // 2. AGREGAR ALUMNO MANUAL
+        window.addManualStudent = () => {
+            const course = document.getElementById('course-select').value;
+            if(!course) return alert("Seleccione un curso base primero.");
+            
+            const name = prompt("Nombre completo del estudiante:");
+            if(!name) return;
+            const rut = prompt("RUT del estudiante:");
+            
+            if(name && rut) {
+                if(!schoolData[course]) schoolData[course] = [];
+                schoolData[course].push({ name: name.toUpperCase(), rut });
+                
+                // Recargar lista
+                const event = new Event('change');
+                document.getElementById('course-select').dispatchEvent(event);
+                
+                // Seleccionar automáticamente al nuevo
+                setTimeout(() => {
+                    const sel = document.getElementById('student-select');
+                    const options = Array.from(sel.options);
+                    const newOpt = options.find(o => o.text === name.toUpperCase());
+                    if(newOpt) {
+                        sel.value = newOpt.value;
+                        sel.dispatchEvent(new Event('change'));
+                    }
+                }, 200);
+            }
+        }
+
+        // 3. GENERAR DOCUMENTO
+        document.getElementById('btn-generate').addEventListener('click', async () => {
+            const type = document.getElementById('doc-type').value;
+            const course = document.getElementById('course-select').value;
+            const selIdx = document.getElementById('student-select').value;
+            const purpose = document.getElementById('doc-purpose').value;
+            
+            let name = "___________________________________";
+            let rut = "________________";
+
+            // Verificar selección
+            if(course && selIdx !== "") {
+                const studentData = schoolData[course][selIdx];
+                name = studentData.name;
+                rut = studentData.rut;
+            } else {
+                if(!confirm("No ha seleccionado un estudiante. ¿Generar documento en blanco?")) return;
+            }
+            
+            updateDocumentView(type, name, rut, course || "__________________", purpose);
+
+            // Guardar en la nube solo si hay datos reales
+            if(course && selIdx !== "") {
+                try {
+                    await addDoc(collection(db, "historial_certificados"), {
+                        type,
+                        student: name,
+                        rut: rut,
+                        course,
+                        purpose,
+                        generatedAt: Timestamp.now(),
+                        user: "Secretaría"
+                    });
+                    showToast("✅ Documento generado y respaldado.");
+                } catch (e) {
+                    console.error(e);
+                    showToast("⚠️ Generado (Modo local).");
+                }
+            }
+        });
+
+        function updateDocumentView(type, name, rut, course, purpose) {
+            const titleEl = document.getElementById('preview-title');
+            const bodyEl = document.getElementById('preview-body');
+            const year = new Date().getFullYear();
+
+            const nameBlock = `
+                <div class="my-5 ps-4 border-start border-4 border-dark">
+                    <p class="mb-1 fs-5">Alumno(a): <strong class="text-uppercase">${name}</strong></p>
+                    <p class="mb-0 fs-5">R.U.T.: <strong>${rut}</strong></p>
+                </div>`;
+
+            let content = "";
+
+            if (type === 'regular') {
+                titleEl.textContent = "CERTIFICADO DE ALUMNO REGULAR";
+                content = `
+                    <p>La Dirección del Establecimiento Educacional <strong>Escuela Agrícola Sagrados Corazones</strong>, certifica que:</p>
+                    ${nameBlock}
+                    <p>Es <strong>ALUMNO(A) REGULAR</strong> de este establecimiento para el año escolar <strong>${year}</strong>, figurando matriculado en el curso <strong>${course}</strong> de Enseñanza Media.</p>
+                    <p>Se extiende el presente certificado a petición del interesado para ser presentado en <strong>${purpose}</strong>.</p>
+                `;
+            } else if (type === 'matricula') {
+                titleEl.textContent = "CERTIFICADO DE MATRÍCULA";
+                content = `
+                    <p>La Dirección del Establecimiento Educacional <strong>Escuela Agrícola Sagrados Corazones</strong>, certifica que:</p>
+                    ${nameBlock}
+                    <p>Figura en los registros oficiales de <strong>MATRÍCULA ${year}</strong>, habiendo formalizado su ingreso al curso <strong>${course}</strong>.</p>
+                    <p>Se otorga el presente documento para fines de: <strong>${purpose}</strong>.</p>
+                `;
+            } else if (type === 'conducta') {
+                titleEl.textContent = "INFORME DE CONDUCTA";
+                content = `
+                    <p>La Dirección del Establecimiento informa sobre el alumno(a):</p>
+                    ${nameBlock}
+                    <p>El estudiante ha mantenido durante el presente año escolar una conducta acorde al <strong>Reglamento Interno de Convivencia Escolar</strong>.</p>
+                    <p>Observaciones: No registra sanciones graves ni condicionalidad vigente a la fecha de emisión.</p>
+                    <p>Se extiende el presente informe para ser presentado en <strong>${purpose}</strong>.</p>
+                `;
+            }
+            
+            bodyEl.innerHTML = content;
+        }
+
+        function updateDate() {
+            const months = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+            const now = new Date();
+            const el = document.getElementById('print-date');
+            if(el) el.textContent = `${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`;
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast-box');
+            if(t) {
+                t.innerHTML = `<div class="toast show align-items-center text-white bg-dark border-0 shadow"><div class="d-flex"><div class="toast-body">${msg}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`;
+                setTimeout(() => t.innerHTML = '', 3500);
+            }
+        }
+    </script>
+</body>
+</html>

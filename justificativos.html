@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Justificativos e Inasistencias</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        
+        .main-wrapper { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+        .card {
+            background-color: white; padding: 1.5rem; border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;
+        }
+
+        /* --- ESTILOS DE IMPRESIÓN --- */
+        @media print {
+            @page { size: Letter portrait; margin: 0.5cm; }
+            body > *:not(#printable-area) { display: none !important; }
+            #printable-area {
+                display: grid !important; 
+                visibility: visible !important;
+                position: absolute; left: 0; top: 0; width: 100%;
+                grid-template-columns: 1fr 1fr; 
+                grid-auto-rows: 6.2cm; 
+                gap: 0.8cm; 
+                padding: 0.5cm;
+            }
+            #printable-area * { visibility: visible !important; }
+            
+            .voucher-card {
+                border: 2px dashed #0d9488;
+                padding: 10px 15px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                background: white;
+                break-inside: avoid;
+                page-break-inside: avoid;
+                height: 100%;
+            }
+            .no-print, #message-box { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <div id="message-box" class="fixed top-5 right-5 bg-teal-600 text-white px-6 py-3 rounded shadow-lg hidden transition-opacity z-50"></div>
+
+    <div class="main-wrapper">
+        
+        <div class="flex items-center justify-between mb-8 border-b pb-4 bg-white p-4 rounded-xl shadow-sm">
+            <div class="flex items-center gap-4">
+                <img src="logo.jpg" class="h-16 w-auto object-contain bg-gray-50 rounded-full p-1 border" onerror="this.style.display='none'">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Justificativos e Inasistencias</h1>
+                    <p class="text-xs text-gray-500 font-medium">Escuela Agrícola Sagrados Corazones</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="flex gap-2">
+                    <button class="bg-red-100 text-red-700 px-4 py-2 rounded font-bold hover:bg-red-200 text-sm transition" id="clear-data-btn">Limpiar Local</button>
+                    <button class="bg-teal-600 text-white px-4 py-2 rounded font-bold hover:bg-teal-700 text-sm transition" id="print-report-btn">Reporte Diario</button>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-2 font-mono text-right">Desarrollado por ProfeAle</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <div class="card border-t-4 border-teal-500">
+                <h2 class="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Ingresar Documento</h2>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Curso</label>
+                        <select id="course-select" class="w-full p-2 border rounded focus:ring-2 focus:ring-teal-200 outline-none bg-gray-50">
+                            <option value="">Selecciona un curso</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Estudiante</label>
+                        <select id="student-select" class="w-full p-2 border rounded focus:ring-2 focus:ring-teal-200 outline-none bg-gray-50" disabled>
+                            <option value="">Primero selecciona un curso</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Desde (Inicio)</label>
+                            <input type="date" id="start-date" class="w-full p-2 border rounded focus:ring-2 focus:ring-teal-200 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Hasta (Término)</label>
+                            <input type="date" id="end-date" class="w-full p-2 border rounded focus:ring-2 focus:ring-teal-200 outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo de Documento</label>
+                        <select id="doc-type" class="w-full p-2 border rounded focus:ring-2 focus:ring-teal-200 outline-none bg-white">
+                            <option value="Certificado Médico">Certificado Médico / Licencia</option>
+                            <option value="Justificación Apoderado">Justificación Apoderado (Agenda/Carta/Telefónica)</option>
+                            <option value="Citación Legal">Citación Legal / Juzgado / PRM</option>
+                            <option value="Defunción Familiar">Certificado de Defunción</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+
+                    <div id="cert-number-container" class="bg-blue-50 p-3 rounded border border-blue-200">
+                        <label class="block text-xs font-bold text-blue-700 uppercase mb-1">N° Certificado / Licencia</label>
+                        <div class="flex gap-2 items-center">
+                            <input type="text" id="cert-number" class="flex-1 p-2 border rounded focus:ring-2 focus:ring-blue-300 outline-none bg-white uppercase font-bold" placeholder="Ej: 123456-K">
+                            <label class="flex items-center gap-1 text-xs font-bold text-gray-500 whitespace-nowrap cursor-pointer bg-white px-2 py-2 border rounded hover:bg-gray-50">
+                                <input type="checkbox" id="cert-pending" class="w-4 h-4 text-blue-600 rounded"> 
+                                Pendiente
+                            </label>
+                        </div>
+                        <p class="text-[10px] text-blue-600 mt-1 italic">* Si no trae el documento, marque "Pendiente".</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Emisor / Profesional</label>
+                        <input type="text" id="issuer-input" class="w-full p-2 border rounded focus:ring-2 focus:ring-teal-200 outline-none" placeholder="Ej: Dr. Juan Pérez o Nombre Apoderado">
+                    </div>
+
+                    <div class="bg-teal-50 p-2 rounded border border-teal-100">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="evaluation-check" class="w-4 h-4 text-teal-600 rounded">
+                            <span class="text-sm font-bold text-teal-800">¿Justifica inasistencia a evaluación?</span>
+                        </label>
+                    </div>
+
+                    <button id="add-to-print-list-btn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded shadow transition transform active:scale-95 mt-2">
+                        Registrar y Generar Recibo
+                    </button>
+                </div>
+
+                <div id="print-list-container" class="mt-6 pt-4 border-t border-dashed hidden">
+                    <div class="flex justify-between items-center mb-2 bg-yellow-50 p-2 rounded">
+                        <h3 class="font-bold text-yellow-800 text-sm">📄 Recibos por Imprimir</h3>
+                        <button id="clear-print-list-btn" class="text-xs text-red-500 font-bold hover:underline">Vaciar Cola</button>
+                    </div>
+                    <ul id="print-list" class="space-y-1 mb-4 text-sm max-h-40 overflow-y-auto"></ul>
+                    <button id="print-collective-btn" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 rounded shadow flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2z" /></svg>
+                        Imprimir Recibos (4 por Hoja)
+                    </button>
+                </div>
+            </div>
+
+            <div class="card border-t-4 border-gray-500 flex flex-col h-full">
+                <h2 class="text-lg font-bold text-gray-800 border-b pb-2 mb-2">Historial Reciente</h2>
+                <div class="flex-1 overflow-y-auto max-h-[500px] pr-2">
+                    <p id="report-placeholder" class="text-gray-400 italic text-center mt-10 text-sm">Cargando registros...</p>
+                    <table class="w-full text-left text-sm hidden" id="report-table">
+                        <thead class="bg-gray-50 sticky top-0 z-10 text-xs uppercase text-gray-500">
+                            <tr><th class="p-2">Fecha</th><th class="p-2">Estudiante</th><th class="p-2">Detalle</th><th class="p-2"></th></tr>
+                        </thead>
+                        <tbody id="report-body" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="printable-area" class="hidden"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyBnSMVCH0yyYUWk5z54kTIPTrWkyoeWs-I", authDomain: "suspenciones-40d0c.firebaseapp.com", projectId: "suspenciones-40d0c", storageBucket: "suspenciones-40d0c.firebasestorage.app", messagingSenderId: "853418739042", appId: "1:853418739042:web:d051befb99cd2acdd4583b" };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const COLLECTION_NAME = "justificativos";
+
+        // --- NÓMINA DE ALUMNOS 2026 (Corregida) ---
+        const schoolData = {
+            'Primero Medio A': [
+                'ÁLVAREZ FAÚNDEZ MATEO VICENTE', 'CASTILLO ARAVENA MAITE PASCAL', 'COLLADO PUENTES SANTINO ALEXANDER', 'CONCHA TORREALBA JOAQUÍN IGNACIO', 'DÍAZ MALUENDA ESTEFANÍA ANTONIA', 'DONAIRE ROJAS MAITE EMILIA ESTER', 'ESPINOZA CACHAÑA LISBET ALEXANDRA', 'FERRADA ALBORNOZ AGUSTÍN ALEXIS', 'FUENTEMAVIDA BARROS OSCAR ANTONIO', 'JAQUE PACHECO DAMIÁN IGNACIO', 'JARAMILLO VILLAR MATT HOST', 'LÓPEZ ACUÑA MARCO EMILIO', 'LÓPEZ VILLAR FRANCO IGNACIO', 'MESA DÍAZ GONZALO IGNACIO', 'MEZA CARRASCO CRISTIAN ALFONSO', 'MORALES GARRIDO NICOLÁS ANTONIO', 'ORTEGA DA SILVA EMILIA CATALINA SOPHIA', 'PEREIRA TAPIA KEVIN RUBÉN', 'RAMÍREZ SEPÚLVEDA LUIS JUSTIN JESÚS', 'RAMÍREZ VALDÉS MARTINA POLETTE', 'RECABAL YÁÑEZ TOMÁS IGNACIO', 'RODRÍGUEZ SEPÚLVEDA SIMONEY ISAMAR', 'ROJAS ÓRDENES TRACY MAIDEN', 'SÁNCHEZ MUNIZAGA ALONDRA ANAÍS', 'SOLIZ OLGUIN BRAYAN', 'VALENZUELA MUÑOZ MAGDALENA BELÉN'
+            ],
+            'Segundo Medio A': [
+                'ALBURQUENQUE DEL GRECCO EMILYA ANTONIA', 'ANABALÓN BELTRÁN BENJAMÍN NICOLÁS', 'ARAVENA ZÚÑIGA NOEMÍ JESÚS DE LAS ESTRELLAS', 'ARAYA DOMÍNGUEZ ALEX FABIÁN', 'ASTUDILLO CAMPOS CRISTÓBAL ANTONIO', 'ASTUDILLO VÁSQUEZ BRUNO FERNANDO LEÓN', 'BAEZ DONOSO LUKAS ALFONSO', 'CARO BUSTOS KRISCHNA ESTEFANIA', 'CONTRERAS SALGADO HADEEY ALEJANDRA', 'CUMINAO VIDAL CATALINA ANDREA', 'DÍAZ MALUENDA MIGUEL ALBERTO', 'IBÁÑEZ GONZÁLEZ FERNANDA MAGDALENA', 'KILTAN GONZÁLEZ DIDIER EZEQUIEL', 'LAGOS LASTRA ALEXANDRA DANAE', 'LÓPEZ LÓPEZ LUCIANO ANTONIO', 'LÓPEZ NOVOA EYDAN DAMIÁN', 'MALDONADO FLORES ANTONELLA BELÉN', 'MONTECINO DÍAZ VALESKA BELÉN', 'MOYA REYES MATEO ANTONIO BENJAMÍN', 'MUÑOZ CONTRERAS LUIS GABRIEL', 'MUÑOZ LUNA ROGER JOEL', 'NAVARRO VILLANUEVA KARLA PAZ', 'ORELLANA ARRIAGADA SEBASTIÁN ANDRÉS', 'OSES CAMPOS VALENTINA ABIGAIL', 'PALMA ORELLANA ANTONELLA FRANCISCA', 'PEREIRA ORELLANA MONSERRAT ALAMIRA', 'PÉREZ ORMAZÁBAL ZADKA ALEJANDRA', 'PÉREZ QUEVEDO CONSTANZA TRINIDAD', 'QUEZADA NARANJO FELIPE ALONSO', 'RAMÍREZ VILLALOBOS DUVAN EMILIO', 'RIQUELME SANTOS BENJAMÍN ALONSO', 'ROJAS GONZÁLEZ FLORENCIA TRINIDAD', 'ROJAS LEIVA EDUARDO JAVIER', 'SALAZAR SALAS PEDRO JOSÉ', 'SANTANDER LÓPEZ MARÍA JOSÉ', 'TAPIA CASTILLA JEANFRANCO PATRICK', 'URBINA CÁCERES FRANCHESCA POULETTE', 'VARGAS MORAGA MARTINA SAYEN', 'VÁSQUEZ AGUILERA SCARLET NICOLE', 'VÁSQUEZ ZALDUENDO AMANDA ISABEL', 'VERA BRAVO FLORENCIA ANTONIA', 'YÁÑEZ GONZÁLEZ BRAYAN DAMIÁN', 'ZABALAGA COFRÉ DAMIÁN ANDRÉS'
+            ],
+            'Tercero Medio A': [
+                'AHUMADA ROJAS TRINIDAD BELÉN', 'CORNEJO CASTILLO OSCAR GABRIEL', 'ESPINOZA PEÑALILLO BRAYAN JESÚS', 'FAÚNDEZ NORAMBUENA ALEJANDRO ANTONIO', 'JARAMILLO VILLAR EMILIO SCOTT', 'LÓPEZ VILLAR MARTÍN ALONSO', 'MEZA COLIMÁN ANGEL BLAS', 'MIRANDA MUÑOZ ALEXANDRA JAVIERA', 'MORAGA PACHECO RENATO IGNACIO', 'MORALES REIMÁN ALFONSO TOMÁS', 'ORELLANA GARRIDO MATÍAS LEANDRO', 'PEREIRA HORMAZÁBAL MAXIMILIANO EDUARDO', 'PINTO TOBAR JORDÁN AMARO', 'RECABAL YÁÑEZ KEVIN ANDRÉS', 'SANDOVAL CERPA VICENTE ESTEBAN', 'SOTO NARANJO CHRISTOPHER', 'VEKARIC VERDEJO MARTÍN', 'VIELMA ZABALAGA JOAN MANUEL'
+            ],
+            'Tercero Medio C': [
+                'BRAVO MENARES ALEX JOHAN', 'CARRASCO LEIVA BENJAMÍN IGNACIO', 'ENCINA PIZARRO DIEGO BENJAMÍN ALEXANDER', 'ESPINOSA TORRES FERNANDA ELENA', 'GONZÁLEZ SALAZAR EMILIA CATALINA', 'MEDEL OJEDA LEÓN IGNACIO', 'OLIVARES VALENZUELA ALONSO IGNACIO', 'OLIVARES VALENZUELA ANTONELLA DANAE IGNACIA', 'PUNOY MEDEL MILLARAY ANGÉLICA', 'QUIÑENAO MUÑOZ CRISTÓBAL PATRICIO', 'RIQUELME CASTILLO MATÍAS EDUARDO ANTONIO', 'RIQUELME COLOMA DALIA CONSTANZA', 'RIVERA ABARZA CONSTANZA VICTORIA', 'SAAVEDRA BRAVO FLORENCIA ALEJANDRA', 'SALGADO ROJAS VICENTE MOISÉS', 'SANTIS CASSEUS TEIVA SCARLETT', 'SOBARZO YÉVENES KATHERINNE ALEXIA BELÉN', 'TOLEDO ALBORNOZ ANTONELLA INES', 'VENEGAS ARRIAGADA ANTONIA EDITH'
+            ],
+            'Cuarto Medio A': [
+                'ALCÁNTAR GARCÍA MARTINA ALEJANDRA', 'BAHAMONDE MUÑOZ ARIEL LEON', 'CAMPOS MUÑOZ CRISTOPHER JESÚS', 'CANCINO ORÓSTICA VICENTE GASPAR', 'CARO URRUTIA CONSUELO ANTONIA', 'CARRASCO GONZÁLEZ CAMILA ANDREA', 'COFRÉ CASTILLO ANTONIO ANDRÉS', 'GALDAMES VERGARA FELIPE ESTEBAN', 'GARCÍA GONZÁLEZ SANTIAGO HUMBERTO', 'GONZÁLEZ AMIGO FRANCISCA IGNACIA', 'GONZÁLEZ SALAZAR JOAQUÍN ALONSO', 'GUTIÉRREZ GUTIÉRREZ ANGEL MARTÍN', 'HERNÁNDEZ SEPÚLVEDA VICENTE ALEJANDRO', 'LOBOS CÁCERES ANTONIA PAZ', 'MARTÍNEZ LIZANA AARON ALEJANDRO', 'MEZA CARRASCO BENJAMÍN INTI', 'MIÑO GONZALEZ CATALINA ANDREA', 'PÉREZ CORÓN MANUEL IGNACIO', 'SAMANIEGO CORTEZ JAKSON FERGIE', 'SEPÚLVEDA SALAZAR SOFÍA ANTONIA', 'TAPIA ACUÑA GABRIEL ANTONIO', 'TORREALBA MOYA FLORVELIS DE LOS ANGELES', 'VEGA VIVANCO CRISTÓBAL ANTONIO', 'VERA NAVARRETE DANIELA ELIZABETH', 'VILLALOBOS ARAVENA KARINA ANGELINA', 'VILLALOBOS VILLALOBOS SAMIR LUCIAN JESÚS'
+            ],
+            'Cuarto Medio C': [
+                'ARELLANO ACUÑA MARTÍN ANTONIO', 'AROS ÁVILA DAYANA IGNACIA', 'CABRERA COLOMBINO MARÍA GRACIA', 'COLLAO MEDINA ANAÍS VALENTINA', 'DE LA HOZ VALENZUELA FRANCO SEBASTIÁN', 'FUENTES CARRASCO YARIXA ALEJANDRA', 'GÓMEZ CANCINO DANIELA ALEJANDRA', 'GUTIÉRREZ CARRIÓN MILLARAY CAROLINA', 'HONORATO TAPIA GLORIA JAVIERA', 'LARA RIVERA BENJAMÍN ESTEBAN', 'PALACIOS SOTO JOSÉ TOMÁS', 'PEZO SANTANDER JOSÉ CRISTÓBAL', 'ROCHA ROJAS JOSÉ PABLO WILLIAMS', 'ROJAS YÉVENES FABIANA ISIDORA', 'SÁNCHEZ PAREJA ANDY ANTONIO', 'SANTANDER LÓPEZ SIMÓN ESTEBAN', 'TRONCOSO LIZAMA SIOMARA IGNACIA', 'WARNKEN ROJAS LUCIANA BERNABELA'
+            ]
+        };
+
+        const courseSelect = document.getElementById('course-select');
+        const studentSelect = document.getElementById('student-select');
+        const docTypeSelect = document.getElementById('doc-type');
+        const certNumberContainer = document.getElementById('cert-number-container');
+        const certInput = document.getElementById('cert-number');
+        const certPendingCheck = document.getElementById('cert-pending');
+        
+        let studentsToPrint = [];
+        let allJustificativos = [];
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            // Llenar select de cursos
+            for (const course in schoolData) {
+                const opt = document.createElement('option');
+                opt.value = course;
+                opt.textContent = course;
+                courseSelect.appendChild(opt);
+            }
+
+            // Fechas por defecto
+            const todayISO = new Date().toISOString().split('T')[0];
+            document.getElementById('start-date').value = todayISO;
+            document.getElementById('end-date').value = todayISO;
+
+            // Auth Firebase
+            signInAnonymously(auth).then(() => {
+                console.log("Conectado a Firebase");
+                listenData();
+            }).catch(e => console.error("Error Auth:", e));
+
+            checkDocType();
+        });
+
+        courseSelect.addEventListener('change', () => {
+            const sel = courseSelect.value;
+            studentSelect.innerHTML = '<option value="">Selecciona un alumno(a)</option>';
+            studentSelect.disabled = !sel;
+            if (sel && schoolData[sel]) {
+                schoolData[sel].forEach(st => {
+                    const opt = document.createElement('option'); opt.value = st; opt.textContent = st; studentSelect.appendChild(opt);
+                });
+            }
+        });
+
+        docTypeSelect.addEventListener('change', checkDocType);
+
+        function checkDocType() {
+            if (docTypeSelect.value.includes('Certificado Médico')) {
+                certNumberContainer.classList.remove('hidden');
+            } else {
+                certNumberContainer.classList.add('hidden');
+                certInput.value = '';
+                certPendingCheck.checked = false;
+                certInput.disabled = false;
+                certInput.classList.remove('bg-gray-100', 'text-gray-500');
+            }
+        }
+
+        certPendingCheck.addEventListener('change', () => {
+            if (certPendingCheck.checked) {
+                certInput.value = '';
+                certInput.placeholder = 'PENDIENTE DE ENTREGA';
+                certInput.disabled = true;
+                certInput.classList.add('bg-gray-100', 'text-gray-500');
+            } else {
+                certInput.placeholder = 'Ej: 123456-K';
+                certInput.disabled = false;
+                certInput.classList.remove('bg-gray-100', 'text-gray-500');
+            }
+        });
+
+        // --- FIREBASE: Descarga y Ordenamiento en Cliente ---
+        function listenData() {
+            const q = collection(db, COLLECTION_NAME); 
+            onSnapshot(q, (snapshot) => {
+                allJustificativos = [];
+                snapshot.forEach((doc) => { 
+                    allJustificativos.push({ id: doc.id, ...doc.data() }); 
+                });
+                
+                // Ordenar por fecha (descendente)
+                allJustificativos.sort((a,b) => {
+                    const tA = a.timestamp || '';
+                    const tB = b.timestamp || '';
+                    return tB.localeCompare(tA);
+                });
+
+                renderReport();
+            });
+        }
+
+        document.getElementById('add-to-print-list-btn').addEventListener('click', async () => {
+            const course = courseSelect.value;
+            const student = studentSelect.value;
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const type = document.getElementById('doc-type').value;
+            const issuer = document.getElementById('issuer-input').value.trim() || "No especificado";
+            const isEval = document.getElementById('evaluation-check').checked;
+            
+            // Lógica Certificado Médico
+            let certNumber = null;
+            if (type.includes('Certificado Médico')) {
+                if (certPendingCheck.checked) {
+                    certNumber = "PENDIENTE";
+                } else {
+                    certNumber = certInput.value.trim();
+                    if (!certNumber) return showToast('⚠️ Faltan datos: Ingrese N° de Licencia o marque "Pendiente".');
+                }
+            }
+
+            if (!course || !student || !startDate || !endDate) return showToast('Faltan datos obligatorios.');
+
+            const now = new Date();
+            const record = {
+                course, student, startDate, endDate, type, issuer, isEval, certNumber,
+                timestamp: now.toISOString(),
+                createdAt: now.toLocaleString('es-CL')
+            };
+
+            try {
+                await addDoc(collection(db, COLLECTION_NAME), record);
+                studentsToPrint.push(record);
+                renderStudentsToPrint();
+                
+                // Reset form parcial
+                studentSelect.value = '';
+                certInput.value = '';
+                certPendingCheck.checked = false;
+                certInput.disabled = false;
+                certInput.classList.remove('bg-gray-100', 'text-gray-500');
+                showToast('✅ Justificativo registrado correctamente.');
+            } catch (e) {
+                console.error(e);
+                showToast('Error al guardar en la nube.');
+            }
+        });
+
+        function renderStudentsToPrint() {
+            const list = document.getElementById('print-list');
+            const container = document.getElementById('print-list-container');
+            list.innerHTML = '';
+            
+            if (studentsToPrint.length > 0) {
+                container.classList.remove('hidden');
+                studentsToPrint.forEach((a, idx) => {
+                    list.innerHTML += `<li class="flex justify-between border-b pb-1 bg-white p-2 rounded shadow-sm mb-1">
+                        <div>
+                            <span class="font-bold block text-teal-800">${a.student}</span>
+                            <span class="text-xs text-gray-500">${a.type}</span>
+                        </div>
+                        <button class="text-red-500 font-bold px-2 hover:bg-red-50 rounded" onclick="window.removeFromPrint(${idx})">×</button>
+                    </li>`;
+                });
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        window.removeFromPrint = (idx) => { studentsToPrint.splice(idx, 1); renderStudentsToPrint(); };
+        document.getElementById('clear-print-list-btn').onclick = () => { studentsToPrint = []; renderStudentsToPrint(); };
+
+        document.getElementById('print-collective-btn').onclick = () => {
+            if(studentsToPrint.length === 0) return;
+            const printable = document.getElementById('printable-area');
+            printable.innerHTML = ''; 
+
+            studentsToPrint.forEach(s => {
+                const sDate = new Date(s.startDate).toLocaleDateString('es-CL', {timeZone: 'UTC'});
+                const eDate = new Date(s.endDate).toLocaleDateString('es-CL', {timeZone: 'UTC'});
+                
+                // Mostrar Info Licencia si existe
+                let extraInfo = '';
+                if(s.certNumber) {
+                    const color = s.certNumber === 'PENDIENTE' ? '#dc2626' : '#0f766e'; // Rojo si pendiente, Verde si OK
+                    extraInfo = `<p style="font-size:10px; margin:2px 0; font-weight:bold; color:${color};">N° CERT/LIC: ${s.certNumber}</p>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'voucher-card';
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0d9488; padding-bottom:5px; margin-bottom:5px;">
+                        <img src="logo.jpg" style="height:45px;" onerror="this.style.display='none'">
+                        <div style="text-align:right;">
+                            <h3 style="margin:0; font-size:14px; font-weight:bold; text-transform:uppercase; color:#0f766e;">Recibo de Justificativo</h3>
+                            <p style="margin:0; font-size:9px; color:#555;">INSPECTORÍA GENERAL</p>
+                        </div>
+                    </div>
+                    
+                    <div style="flex-grow:1; display:flex; flex-direction:column; justify-content:center;">
+                        <p style="font-size:10px; color:#666; margin-bottom:1px;">ESTUDIANTE:</p>
+                        <p style="font-size:13px; font-weight:bold; margin:0 0 6px 0; text-transform:uppercase;">${s.student}</p>
+                        <p style="font-size:10px; font-weight:bold; color:#0d9488;">${s.course}</p>
+                        
+                        <div style="background:#f0fdf4; padding:5px; border-radius:4px; margin-top:8px; border:1px solid #bbf7d0;">
+                            <p style="font-size:10px; margin:0;"><strong>TIPO:</strong> ${s.type}</p>
+                            ${extraInfo}
+                            <p style="font-size:10px; margin:2px 0;"><strong>FECHAS:</strong> Del ${sDate} al ${eDate}</p>
+                            <p style="font-size:10px; margin:0;"><strong>EMISOR:</strong> ${s.issuer}</p>
+                            ${s.isEval ? '<p style="font-size:10px; color:#dc2626; font-weight:bold; margin-top:2px;">* JUSTIFICA EVALUACIÓN</p>' : ''}
+                        </div>
+                    </div>
+
+                    <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:flex-end;">
+                        <div style="text-align:center;">
+                            <div style="border-bottom:1px solid black; width:100px; margin-bottom:2px;"></div>
+                            <p style="font-size:8px;">Timbre Inspectoría</p>
+                        </div>
+                        <p style="font-size:8px; color:#999;">Recepción: ${new Date().toLocaleDateString()}</p>
+                    </div>
+                `;
+                printable.appendChild(card);
+            });
+
+            window.print();
+            studentsToPrint = []; 
+            renderStudentsToPrint();
+        };
+
+        document.getElementById('print-report-btn').onclick = () => {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayData = allJustificativos.filter(a => a.timestamp.startsWith(todayStr));
+
+            if(todayData.length === 0) return showToast('No se ingresaron justificativos hoy.');
+
+            const printable = document.getElementById('printable-area');
+            printable.innerHTML = `
+                <div style="width:100%;">
+                    <h2 style="text-align:center; margin-bottom:10px; font-size:18px;">REPORTE DE JUSTIFICATIVOS INGRESADOS</h2>
+                    <p style="text-align:center; font-size:12px; margin-bottom:20px;">Fecha Emisión: ${new Date().toLocaleDateString()} | Total: ${todayData.length}</p>
+                    <table style="width:100%; border-collapse:collapse; font-size:11px; page-break-inside: auto;">
+                        <thead style="display: table-header-group;">
+                            <tr style="background:#eee;">
+                                <th style="border:1px solid #999; padding:6px; text-align:left;">Estudiante / Curso</th>
+                                <th style="border:1px solid #999; padding:6px; text-align:left;">Tipo Documento</th>
+                                <th style="border:1px solid #999; padding:6px; text-align:left;">Período Justificado</th>
+                                <th style="border:1px solid #999; padding:6px; text-align:center;">Eval?</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${todayData.map(a => `
+                                <tr style="page-break-inside: avoid; page-break-after: auto;">
+                                    <td style="border:1px solid #999; padding:6px;"><b>${a.student}</b><br>${a.course}</td>
+                                    <td style="border:1px solid #999; padding:6px;">${a.type}<br>
+                                        ${a.certNumber ? `<span style="font-weight:bold; color:#0f766e;">N°: ${a.certNumber}</span><br>` : ''}
+                                        <span style="color:#666; font-size:9px;">Emisor: ${a.issuer}</span>
+                                    </td>
+                                    <td style="border:1px solid #999; padding:6px;">Desde: ${a.startDate}<br>Hasta: ${a.endDate}</td>
+                                    <td style="border:1px solid #999; padding:6px; text-align:center;">${a.isEval ? 'SÍ' : '-'}</td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>
+                    <div style="margin-top:20px; text-align:right; font-size:10px; color:#666;">Generado por ProfeAle System</div>
+                </div>
+            `;
+            const style = document.createElement('style');
+            style.innerHTML = `@page { size: Letter; margin: 1cm; } #printable-area { display: block !important; position: relative !important; grid-template-columns: none !important; grid-auto-rows: auto !important; gap: 0 !important; }`;
+            document.head.appendChild(style);
+            window.print();
+            setTimeout(() => document.head.removeChild(style), 1000);
+        };
+
+        function renderReport() {
+            const tbody = document.getElementById('report-body');
+            const table = document.getElementById('report-table');
+            const placeholder = document.getElementById('report-placeholder');
+            tbody.innerHTML = '';
+            const displayData = allJustificativos.slice(0, 15);
+
+            if (displayData.length > 0) {
+                placeholder.classList.add('hidden');
+                table.classList.remove('hidden');
+                displayData.forEach((a) => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-2 border-b text-xs text-gray-500">${a.createdAt.split(' ')[0]}</td>
+                            <td class="p-2 border-b"><div class="font-bold text-gray-700 text-xs">${a.student}</div><div class="text-[10px] text-teal-600">${a.course}</div></td>
+                            <td class="p-2 border-b text-xs"><div class="font-bold">${a.type}</div>${a.certNumber ? `<div class="text-[9px] font-bold text-blue-600">N° ${a.certNumber}</div>` : ''}<div class="text-[10px] text-gray-500">${a.startDate} » ${a.endDate}</div></td>
+                            <td class="p-2 border-b text-right"><button onclick="window.deleteItem('${a.id}')" class="text-red-500 text-xs hover:bg-red-50 p-1 rounded">🗑️</button></td>
+                        </tr>`;
+                });
+            } else { placeholder.classList.remove('hidden'); table.classList.add('hidden'); }
+        }
+
+        window.deleteItem = async (id) => { if(confirm('¿Eliminar este registro de la nube?')) { try { await deleteDoc(doc(db, COLLECTION_NAME, id)); showToast('Registro eliminado.'); } catch(e) { showToast('Error al eliminar.'); } } };
+        document.getElementById('clear-data-btn').onclick = () => alert("Esta función solo limpia la vista local. Para eliminar registros, usa el botón de eliminar individual.");
+        function showToast(msg) { const box = document.getElementById('message-box'); box.innerText = msg; box.classList.remove('hidden'); setTimeout(() => box.classList.add('hidden'), 3000); }
+        window.removeFromPrint = removeFromPrint; window.deleteItem = deleteItem;
+    </script>
+</body>
+</html>

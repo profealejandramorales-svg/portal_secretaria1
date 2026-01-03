@@ -191,9 +191,10 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
+        // Configuración de Firebase (No modificar)
         const firebaseConfig = { apiKey: "AIzaSyBnSMVCH0yyYUWk5z54kTIPTrWkyoeWs-I", authDomain: "suspenciones-40d0c.firebaseapp.com", projectId: "suspenciones-40d0c", storageBucket: "suspenciones-40d0c.firebasestorage.app", messagingSenderId: "853418739042", appId: "1:853418739042:web:d051befb99cd2acdd4583b" };
         
         const app = initializeApp(firebaseConfig);
@@ -201,15 +202,72 @@
         const auth = getAuth(app);
         const COLLECTION_NAME = "citaciones";
 
+        // --- NÓMINA DE ALUMNOS 2026 CORREGIDA Y COMPLETA ---
         const schoolData = {
-            'Primero Medio A': ['ALBURQUENQUE DEL GRECCO EMILYA ANTONIA', 'ANABALÓN BELTRÁN BENJAMÍN NICOLÁS', 'CONTRERAS SALGADO HADEEY ALEJANDRA', 'FERRADA ALBORNOZ AGUSTÍN ALEXIS', 'HERNÁNDEZ FERNÁNDEZ DHARIEN ALEXSANDER', 'IBÁÑEZ GONZÁLEZ FERNANDA MAGDALENA', 'LAGOS LASTRA ALEXANDRA DANAE', 'LÓPEZ LÓPEZ LUCIANO ANTONIO', 'MALDONADO FLORES ANTONELLA BELÉN', 'MARIN MARÍN IGNACIO ANTONIO', 'MONTECINO DÍAZ VALESKA BELÉN', 'MUÑOZ CONTRERAS LUIS GABRIEL', 'MUÑOZ LUNA ROGER JOEL', 'NAVARRO VILLANUEVA KARLA PAZ', 'ORELLANA ARRIAGADA SEBASTIÁN ANDRÉS', 'QUEZADA NARANJO FELIPE ALONSO', 'QUINTEROS VERGARA FERNANDA FLORENCIA', 'RAMÍREZ VILLALOBOS DUVAN EMILIO', 'SANTANDER LÓPEZ MARÍA JOSÉ', 'TAPIA CASTILLA JEANFRANCO PATRICK', 'URBINA CÁCERES FRANCHESCA POULETTE', 'VÁSQUEZ ZALDUENDO AMANDA ISABEL', 'ZABALAGA COFRÉ DAMIÁN ANDRÉS', 'BAEZ DONOSO LUKAS ALFONSO', 'MESA DÍAZ GONZALO IGNACIO', 'BAREA SALGADO SERGIO ALEXANDER'],
-            'Primero Medio B': ['ARAYA DOMÍNGUEZ ALEX FABIÁN', 'BRAVO MENARES ALEX JOHAN', 'CARRASCO LEIVA BENJAMÍN IGNACIO', 'CARVAJAL URRUTIA CONSTANZA PRISILA (DANIEL)', 'ENCINA PIZARRO DIEGO BENJAMÍN ALEXANDER', 'FAÚNDEZ NORAMBUENA ALEJANDRO ANTONIO', 'JARAMILLO VILLAR EMILIO SCOTT', 'LÓPEZ VILLAR MARTÍN ALONSO', 'MIRANDA MUÑOZ ALEXANDRA JAVIERA', 'MUÑOZ TRONCOSO HÉCTOR ANTONIO', 'OLIVARES VALENZUELA ALONSO IGNACIO', 'OLIVARES VALENZUELA ANTONELLA DANAE IGNACIA', 'ORELLANA GARRIDO MATÍAS LEANDRO', 'PUNOY MEDEL MILLARAY ANGÉLICA', 'QUIÑENAO MUÑOZ CRISTÓBAL PATRICIO', 'RIQUELME COLOMA DALIA CONSTANZA', 'SALGADO ROJAS VICENTE MOISÉS', 'SANDOVAL CERPA VICENTE ESTEBAN', 'SOTO NARANJO CHRISTOPHER', 'VEKARIC VERDEJO MARTÍN'],
-            'Segundo Medio A': ['AHUMADA ROJAS TRINIDAD BELÉN', 'ESPINOSA TORRES FERNANDA ELENA', 'ESPINOZA PEÑALILLO BRAYAN JESÚS', 'GONZÁLEZ SALAZAR EMILIA CATALINA', 'MEDEL OJEDA LEÓN IGNACIO', 'MORALES REIMÁN ALFONSO TOMÁS', 'PEREIRA HORMAZÁBAL MAXIMILIANO EDUARDO', 'PINTO TOBAR JORDÁN AMARO', 'RECABAL YÁÑEZ KEVIN ANDRÉS', 'RIQUELME CASTILLO MATÍAS EDUARDO ANTONIO', 'RIVERA ABARZA CONSTANZA VICTORIA', 'SANTIS CASSEUS TEIVA SCARLETT', 'SOBARZO YÉVENES KATHERINNE ALEXIA BELÉN', 'TOLEDO ALBORNOZ ANTONELLA INES', 'VENEGAS ARRIAGADA ANTONIA EDITH', 'VIELMA ZABALAGA JOAN MANUEL', 'MEZA COLIMÁN ANGEL BLAS', 'PALMA ORELLANA ANTONELLA FRANCISCA'],
-            'Segundo Medio B': ['ARAYA DOMÍNGUEZ ALEX FABIÁN', 'BRAVO MENARES ALEX JOHAN', 'CARRASCO LEIVA BENJAMÍN IGNACIO', 'CARVAJAL URRUTIA CONSTANZA PRISILA (DANIEL)', 'ENCINA PIZARRO DIEGO BENJAMÍN ALEXANDER', 'FAÚNDEZ NORAMBUENA ALEJANDRO ANTONIO', 'JARAMILLO VILLAR EMILIO SCOTT', 'LÓPEZ VILLAR MARTÍN ALONSO', 'MIRANDA MUÑOZ ALEXANDRA JAVIERA', 'MUÑOZ TRONCOSO HÉCTOR ANTONIO', 'OLIVARES VALENZUELA ALONSO IGNACIO', 'OLIVARES VALENZUELA ANTONELLA DANAE IGNACIA', 'ORELLANA GARRIDO MATÍAS LEANDRO', 'PUNOY MEDEL MILLARAY ANGÉLICA', 'QUIÑENAO MUÑOZ CRISTÓBAL PATRICIO', 'RIQUELME COLOMA DALIA CONSTANZA', 'SALGADO ROJAS VICENTE MOISÉS', 'SANDOVAL CERPA VICENTE ESTEBAN', 'SOTO NARANJO CHRISTOPHER', 'VEKARIC VERDEJO MARTÍN'],
-            'Tercero Medio A': ['ALCÁNTAR GARCÍA MARTINA ALEJANDRA', 'BAHAMONDE MUÑOZ ARIEL LEON', 'CAMPOS MUÑOZ CRISTOPHER JESÚS', 'CANCINO ORÓSTICA VICENTE GASPAR', 'CARRASCO GONZÁLEZ CAMILA ANDREA', 'COFRÉ CASTILLO ANTONIO ANDRÉS', 'CONTRERAS VENEGAS BELÉN ALEJANDRA', 'GALDAMES VERGARA FELIPE ESTEBAN', 'GARCÍA GONZÁLEZ SANTIAGO HUMBERTO', 'GONZÁLEZ AMIGO FRANCISCA IGNACIA', 'GONZÁLEZ SALAZAR JOAQUÍN ALONSO', 'GUTIÉRREZ GUTIÉRREZ ANGEL MARTÍN', 'JARA SEPÚLVEDA KATRINA DARINKA', 'MARTÍNEZ LIZANA AARON ALEJANDRO', 'MEZA CARRASCO BENJAMÍN INTI', 'MIÑO GONZALEZ CATALINA ANDREA', 'MORAGA PACHECO RENATO IGNACIO', 'PÉREZ CORÓN MANUEL IGNACIO', 'SAMANIEGO CORTEZ JAKSON FERGIE', 'SEPÚLVEDA SALAZAR SOFÍA ANTONIA', 'TAPIA ACUÑA GABRIEL ANTONIO', 'VEGA VIVANCO CRISTÓBAL ANTONIO', 'VERA NAVARRETE DANIELA ELIZABETH', 'VILLALOBOS ARAVENA KARINA ANGELINA', 'VILLALOBOS VILLALOBOS SAMIR LUCIAN JESÚS', 'HERNÁNDEZ SEPÚLVEDA VICENTE ALEJANDRO', 'TORREALBA MOYA FLORVELIS DE LOS ANGELES', 'CARO URRUTIA CONSUELO ANTONIA', 'LOBOS CÁCERES ANTONIA PAZ'],
-            'Tercero Medio C': ['ARELLANO ACUÑA MARTÍN ANTONIO', 'AROS ÁVILA DAYANA IGNACIA', 'CABRERA COLOMBINO MARÍA GRACIA', 'FUENTES CARRASCO YARIXA ALEJANDRA', 'GÓMEZ CANCINO DANIELA ALEJANDRA', 'GUTIÉRREZ CARRIÓN MILLARAY CAROLINA', 'HONORATO TAPIA GLORIA JAVIERA', 'LARA RIVERA BENJAMÍN ESTEBAN', 'PALACIOS SOTO JOSÉ TOMÁS', 'PEZO SANTANDER JOSÉ CRISTÓBAL', 'ROCHA ROJAS JOSÉ PABLO WILLIAMS', 'ROJAS YÉVENES FABIANA ISIDORA', 'SÁNCHEZ PAREJA ANDY ANTONIO', 'SANTANDER LÓPEZ SIMÓN ESTEBAN', 'TRONCOSO LIZAMA SIOMARA IGNACIA', 'WARNKEN ROJAS LUCIANA BERNABELA', 'DE LA HOZ VALENZUELA FRANCO SEBASTIÁN', 'COLLAO MEDINA ANAÍS VALENTINA'],
-            'Cuarto Medio A': ['AGURTO CRESPO HOMERO ALEXANDER', 'ANDIA DE LA HOZ CATALINA BELEN', 'FUENTES GONZÁLEZ ESTEBAN ALEXANDER', 'GARCÍA ROJAS SOFÍA ELENA', 'GODOY HERRERA ANTONELLA CONSTANZA PAZ', 'GONZÁLEZ CASTRO KEVIN ALEJANDRO', 'MARCHANT MORÁN PÍA IGNACIA', 'QUINTANA SAN MARTÍN ALAN VICENTE', 'RECABAL YÁÑEZ CRISTOFER BASTIÁN', 'ROJAS GONZÁLEZ GABRIEL ANTONIO', 'TOLEDO MUÑOZ ESPERANZA BELÉN', 'YÁÑEZ GONZÁLEZ FRANCISCA ALEJANDRA'],
-            'Cuarto Medio C': ['Josefa Morales', 'Benjamín Pérez', 'Constanza Varela'],
+            'Primero Medio A': [
+                "ÁLVAREZ FAÚNDEZ MATEO VICENTE", "CASTILLO ARAVENA MAITE PASCAL", "COLLADO PUENTES SANTINO ALEXANDER", 
+                "CONCHA TORREALBA JOAQUÍN IGNACIO", "DÍAZ MALUENDA ESTEFANÍA ANTONIA", "DONAIRE ROJAS MAITE EMILIA ESTER", 
+                "ESPINOZA CACHAÑA LISBET ALEXANDRA", "FERRADA ALBORNOZ AGUSTÍN ALEXIS", "FUENTEMAVIDA BARROS OSCAR ANTONIO", 
+                "JAQUE PACHECO DAMIÁN IGNACIO", "JARAMILLO VILLAR MATT HOST", "LÓPEZ ACUÑA MARCO EMILIO", 
+                "LÓPEZ VILLAR FRANCO IGNACIO", "MESA DÍAZ GONZALO IGNACIO", "MEZA CARRASCO CRISTIAN ALFONSO", 
+                "MORALES GARRIDO NICOLÁS ANTONIO", "ORTEGA DA SILVA EMILIA CATALINA SOPHIA", "PEREIRA TAPIA KEVIN RUBÉN", 
+                "RAMÍREZ SEPÚLVEDA LUIS JUSTIN JESÚS", "RAMÍREZ VALDÉS MARTINA POLETTE", "RECABAL YÁÑEZ TOMÁS IGNACIO", 
+                "RODRÍGUEZ SEPÚLVEDA SIMONEY ISAMAR", "ROJAS ÓRDENES TRACY MAIDEN", "SÁNCHEZ MUNIZAGA ALONDRA ANAÍS", 
+                "SOLIZ OLGUIN BRAYAN", "VALENZUELA MUÑOZ MAGDALENA BELÉN"
+            ],
+            'Segundo Medio A': [
+                "ALBURQUENQUE DEL GRECCO EMILYA ANTONIA", "ANABALÓN BELTRÁN BENJAMÍN NICOLÁS", "ARAVENA ZÚÑIGA NOEMÍ JESÚS DE LAS ESTRELLAS", 
+                "ARAYA DOMÍNGUEZ ALEX FABIÁN", "ASTUDILLO CAMPOS CRISTÓBAL ANTONIO", "ASTUDILLO VÁSQUEZ BRUNO FERNANDO LEÓN", 
+                "BAEZ DONOSO LUKAS ALFONSO", "CARO BUSTOS KRISCHNA ESTEFANIA", "CONTRERAS SALGADO HADEEY ALEJANDRA", 
+                "CUMINAO VIDAL CATALINA ANDREA", "DÍAZ MALUENDA MIGUEL ALBERTO", "IBÁÑEZ GONZÁLEZ FERNANDA MAGDALENA", 
+                "KILTAN GONZÁLEZ DIDIER EZEQUIEL", "LAGOS LASTRA ALEXANDRA DANAE", "LÓPEZ LÓPEZ LUCIANO ANTONIO", 
+                "LÓPEZ NOVOA EYDAN DAMIÁN", "MALDONADO FLORES ANTONELLA BELÉN", "MONTECINO DÍAZ VALESKA BELÉN", 
+                "MOYA REYES MATEO ANTONIO BENJAMÍN", "MUÑOZ CONTRERAS LUIS GABRIEL", "MUÑOZ LUNA ROGER JOEL", 
+                "NAVARRO VILLANUEVA KARLA PAZ", "ORELLANA ARRIAGADA SEBASTIÁN ANDRÉS", "OSES CAMPOS VALENTINA ABIGAIL", 
+                "PALMA ORELLANA ANTONELLA FRANCISCA", "PEREIRA ORELLANA MONSERRAT ALAMIRA", "PÉREZ ORMAZÁBAL ZADKA ALEJANDRA", 
+                "PÉREZ QUEVEDO CONSTANZA TRINIDAD", "QUEZADA NARANJO FELIPE ALONSO", "RAMÍREZ VILLALOBOS DUVAN EMILIO", 
+                "RIQUELME SANTOS BENJAMÍN ALONSO", "ROJAS GONZÁLEZ FLORENCIA TRINIDAD", "ROJAS LEIVA EDUARDO JAVIER", 
+                "SALAZAR SALAS PEDRO JOSÉ", "SANTANDER LÓPEZ MARÍA JOSÉ", "TAPIA CASTILLA JEANFRANCO PATRICK", 
+                "URBINA CÁCERES FRANCHESCA POULETTE", "VARGAS MORAGA MARTINA SAYEN", "VÁSQUEZ AGUILERA SCARLET NICOLE", 
+                "VÁSQUEZ ZALDUENDO AMANDA ISABEL", "VERA BRAVO FLORENCIA ANTONIA", "YÁÑEZ GONZÁLEZ BRAYAN DAMIÁN", 
+                "ZABALAGA COFRÉ DAMIÁN ANDRÉS"
+            ],
+            'Tercero Medio A': [
+                "AHUMADA ROJAS TRINIDAD BELÉN", "CORNEJO CASTILLO OSCAR GABRIEL", "ESPINOZA PEÑALILLO BRAYAN JESÚS", 
+                "FAÚNDEZ NORAMBUENA ALEJANDRO ANTONIO", "JARAMILLO VILLAR EMILIO SCOTT", "LÓPEZ VILLAR MARTÍN ALONSO", 
+                "MEZA COLIMÁN ANGEL BLAS", "MIRANDA MUÑOZ ALEXANDRA JAVIERA", "MORAGA PACHECO RENATO IGNACIO", 
+                "MORALES REIMÁN ALFONSO TOMÁS", "ORELLANA GARRIDO MATÍAS LEANDRO", "PEREIRA HORMAZÁBAL MAXIMILIANO EDUARDO", 
+                "PINTO TOBAR JORDÁN AMARO", "RECABAL YÁÑEZ KEVIN ANDRÉS", "SANDOVAL CERPA VICENTE ESTEBAN", 
+                "SOTO NARANJO CHRISTOPHER", "VEKARIC VERDEJO MARTÍN", "VIELMA ZABALAGA JOAN MANUEL"
+            ],
+            'Tercero Medio C': [
+                "BRAVO MENARES ALEX JOHAN", "CARRASCO LEIVA BENJAMÍN IGNACIO", "ENCINA PIZARRO DIEGO BENJAMÍN ALEXANDER", 
+                "ESPINOSA TORRES FERNANDA ELENA", "GONZÁLEZ SALAZAR EMILIA CATALINA", "MEDEL OJEDA LEÓN IGNACIO", 
+                "OLIVARES VALENZUELA ALONSO IGNACIO", "OLIVARES VALENZUELA ANTONELLA DANAE IGNACIA", "PUNOY MEDEL MILLARAY ANGÉLICA", 
+                "QUIÑENAO MUÑOZ CRISTÓBAL PATRICIO", "RIQUELME CASTILLO MATÍAS EDUARDO ANTONIO", "RIQUELME COLOMA DALIA CONSTANZA", 
+                "RIVERA ABARZA CONSTANZA VICTORIA", "SAAVEDRA BRAVO FLORENCIA ALEJANDRA", "SALGADO ROJAS VICENTE MOISÉS", 
+                "SANTIS CASSEUS TEIVA SCARLETT", "SOBARZO YÉVENES KATHERINNE ALEXIA BELÉN", "TOLEDO ALBORNOZ ANTONELLA INES", 
+                "VENEGAS ARRIAGADA ANTONIA EDITH"
+            ],
+            'Cuarto Medio A': [
+                "ALCÁNTAR GARCÍA MARTINA ALEJANDRA", "BAHAMONDE MUÑOZ ARIEL LEON", "CAMPOS MUÑOZ CRISTOPHER JESÚS", 
+                "CANCINO ORÓSTICA VICENTE GASPAR", "CARO URRUTIA CONSUELO ANTONIA", "CARRASCO GONZÁLEZ CAMILA ANDREA", 
+                "COFRÉ CASTILLO ANTONIO ANDRÉS", "GALDAMES VERGARA FELIPE ESTEBAN", "GARCÍA GONZÁLEZ SANTIAGO HUMBERTO", 
+                "GONZÁLEZ AMIGO FRANCISCA IGNACIA", "GONZÁLEZ SALAZAR JOAQUÍN ALONSO", "GUTIÉRREZ GUTIÉRREZ ANGEL MARTÍN", 
+                "HERNÁNDEZ SEPÚLVEDA VICENTE ALEJANDRO", "LOBOS CÁCERES ANTONIA PAZ", "MARTÍNEZ LIZANA AARON ALEJANDRO", 
+                "MEZA CARRASCO BENJAMÍN INTI", "MIÑO GONZALEZ CATALINA ANDREA", "PÉREZ CORÓN MANUEL IGNACIO", 
+                "SAMANIEGO CORTEZ JAKSON FERGIE", "SEPÚLVEDA SALAZAR SOFÍA ANTONIA", "TAPIA ACUÑA GABRIEL ANTONIO", 
+                "TORREALBA MOYA FLORVELIS DE LOS ANGELES", "VEGA VIVANCO CRISTÓBAL ANTONIO", "VERA NAVARRETE DANIELA ELIZABETH", 
+                "VILLALOBOS ARAVENA KARINA ANGELINA", "VILLALOBOS VILLALOBOS SAMIR LUCIAN JESÚS"
+            ],
+            'Cuarto Medio C': [
+                "ARELLANO ACUÑA MARTÍN ANTONIO", "AROS ÁVILA DAYANA IGNACIA", "CABRERA COLOMBINO MARÍA GRACIA", 
+                "COLLAO MEDINA ANAÍS VALENTINA", "DE LA HOZ VALENZUELA FRANCO SEBASTIÁN", "FUENTES CARRASCO YARIXA ALEJANDRA", 
+                "GÓMEZ CANCINO DANIELA ALEJANDRA", "GUTIÉRREZ CARRIÓN MILLARAY CAROLINA", "HONORATO TAPIA GLORIA JAVIERA", 
+                "LARA RIVERA BENJAMÍN ESTEBAN", "PALACIOS SOTO JOSÉ TOMÁS", "PEZO SANTANDER JOSÉ CRISTÓBAL", 
+                "ROCHA ROJAS JOSÉ PABLO WILLIAMS", "ROJAS YÉVENES FABIANA ISIDORA", "SÁNCHEZ PAREJA ANDY ANTONIO", 
+                "SANTANDER LÓPEZ SIMÓN ESTEBAN", "TRONCOSO LIZAMA SIOMARA IGNACIA", "WARNKEN ROJAS LUCIANA BERNABELA"
+            ]
         };
 
         const courseSelect = document.getElementById('course-select');
@@ -218,41 +276,58 @@
         let allCitations = [];
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Inicializar Auth anónimo
             signInAnonymously(auth).then(() => {
-                console.log("Conectado");
+                console.log("Conectado a Firebase");
                 listenData();
+            }).catch((error) => {
+                console.error("Error Auth:", error);
+                showToast("Error de conexión");
             });
 
+            // Llenar select de cursos
+            courseSelect.innerHTML = '<option value="">Selecciona un curso</option>';
             for (const course in schoolData) {
-                const opt = document.createElement('option'); opt.value = course; opt.textContent = course;
+                const opt = document.createElement('option'); 
+                opt.value = course; 
+                opt.textContent = course;
                 courseSelect.appendChild(opt);
             }
             
-            // Fecha mañana por defecto (lógica usual para citaciones)
+            // Fecha por defecto (mañana)
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             document.getElementById('citation-date').value = tomorrow.toISOString().split('T')[0];
         });
 
+        // Evento cambio de curso
         courseSelect.addEventListener('change', () => {
             const sel = courseSelect.value;
             studentSelect.innerHTML = '<option value="">Selecciona un alumno(a)</option>';
-            studentSelect.disabled = !sel;
+            
             if (sel && schoolData[sel]) {
+                studentSelect.disabled = false;
                 schoolData[sel].forEach(st => {
-                    const opt = document.createElement('option'); opt.value = st; opt.textContent = st; studentSelect.appendChild(opt);
+                    const opt = document.createElement('option'); 
+                    opt.value = st; 
+                    opt.textContent = st; 
+                    studentSelect.appendChild(opt);
                 });
+            } else {
+                studentSelect.disabled = true;
             }
         });
 
+        // Escuchar datos en tiempo real
         function listenData() {
-            // Sin orderBy para evitar error índice, ordenamos en cliente
             const q = collection(db, COLLECTION_NAME);
             onSnapshot(q, (snapshot) => {
                 allCitations = [];
-                snapshot.forEach((doc) => { allCitations.push({ id: doc.id, ...doc.data() }); });
+                snapshot.forEach((doc) => { 
+                    allCitations.push({ id: doc.id, ...doc.data() }); 
+                });
                 
-                // Ordenar descendente por timestamp
+                // Ordenar por fecha (más reciente primero)
                 allCitations.sort((a,b) => {
                     const tA = a.timestamp || '';
                     const tB = b.timestamp || '';
@@ -263,6 +338,7 @@
             });
         }
 
+        // Agregar a la cola de impresión
         document.getElementById('add-to-print-list-btn').addEventListener('click', async () => {
             const course = courseSelect.value;
             const student = studentSelect.value;
@@ -270,7 +346,7 @@
             const time = document.getElementById('citation-time').value;
             const reason = document.getElementById('reason-select').value;
             const mode = document.getElementById('mode-select').value;
-            const teacher = document.getElementById('teacher-input').value; // Ahora es un select
+            const teacher = document.getElementById('teacher-input').value; 
             const obs = document.getElementById('obs-input').value.trim();
 
             if (!course || !student || !date || !time || !teacher) return showToast('Faltan datos obligatorios.');
@@ -283,11 +359,14 @@
             };
 
             try {
+                // Guardar en Firebase
                 await addDoc(collection(db, COLLECTION_NAME), record);
+                
+                // Agregar a lista local de impresión
                 studentsToPrint.push(record);
                 renderStudentsToPrint();
                 
-                // Reset form parcial
+                // Resetear selección de alumno
                 studentSelect.value = '';
                 showToast('✅ Citación generada correctamente.');
             } catch (e) {
@@ -317,16 +396,17 @@
             }
         }
 
+        // Funciones globales para botones dinámicos
         window.removeFromPrint = (idx) => { studentsToPrint.splice(idx, 1); renderStudentsToPrint(); };
         document.getElementById('clear-print-list-btn').onclick = () => { studentsToPrint = []; renderStudentsToPrint(); };
 
+        // Imprimir Colillas
         document.getElementById('print-collective-btn').onclick = () => {
             if(studentsToPrint.length === 0) return;
             const printable = document.getElementById('printable-area');
             printable.innerHTML = ''; 
 
             studentsToPrint.forEach(s => {
-                // Formatear fecha bonita
                 const [y, m, d] = s.citationDate.split('-');
                 const datePretty = `${d}/${m}/${y}`;
 
@@ -378,6 +458,7 @@
             renderStudentsToPrint();
         };
 
+        // Imprimir Reporte Diario
         document.getElementById('print-report-btn').onclick = () => {
             if(allCitations.length === 0) return showToast('No hay registros.');
 
@@ -409,7 +490,6 @@
                 </div>
             `;
             
-            // Style override for full page report
             const style = document.createElement('style');
             style.innerHTML = `@page { size: Letter; margin: 1cm; } #printable-area { display: block !important; position: relative !important; } .citation-slip { display: none; }`;
             document.head.appendChild(style);
